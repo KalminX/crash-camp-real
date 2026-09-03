@@ -1,0 +1,383 @@
+/* ==========================================================================
+   CRASH CAMP — UI / UX STYLING
+   Follows style_guide.txt: Anti-AI / Human-Designed Game UI
+   Restrained, physical, atmospheric, functional, zero emojis.
+   ========================================================================== */
+
+:root {
+  /* Color System (from style_guide.txt Section 3) */
+  --color-deep-forest: #17251c;
+  --color-forest: #26382a;
+  --color-moss: #52634a;
+  --color-earth: #594a3a;
+  --color-dark-earth: #342b23;
+  --color-charcoal: #171918;
+  --color-ash: #b8b4a8;
+  --color-warm-white: #e7e1d3;
+  --color-fire: #d96b32;
+  --color-danger: #a83e32;
+  --color-success: #7d9b5b;
+
+  /* UI Tokens */
+  --bg-base: #171918;
+  --panel-bg: rgba(23, 25, 24, 0.9);
+  --panel-border: rgba(184, 180, 168, 0.2);
+  --btn-bg: rgba(38, 56, 42, 0.45);
+  --btn-bg-hover: rgba(82, 99, 74, 0.5);
+  --btn-border: rgba(184, 180, 168, 0.25);
+  --btn-border-hover: rgba(231, 225, 211, 0.5);
+
+  /* Border Radii (Section 5: 2px, 4px, 6px) */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  /* Spacing Scale (Section 25) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Typography (Section 4) */
+  --font-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Consolas", "Courier New", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-base);
+  font-family: var(--font-ui);
+  color: var(--color-warm-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#game-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   RETICLE & INTERACTION PROMPT (Sections 7 & 8)
+   ========================================================================== */
+
+#reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.reticle-dot {
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-warm-white);
+  border-radius: 50%;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+#reticle.active .reticle-dot {
+  opacity: 1;
+  background-color: var(--color-fire);
+}
+
+.interaction-prompt {
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-warm-white);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.interaction-prompt.hidden {
+  display: none;
+}
+
+.key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--color-charcoal);
+  border: 1px solid var(--color-ash);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-warm-white);
+  line-height: 1;
+}
+
+.prompt-text {
+  color: var(--color-warm-white);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   SCENE NAVIGATOR PANEL (Sections 12 & 42)
+   ========================================================================== */
+
+#scene-nav-panel {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.nav-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  width: 280px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+.panel-header {
+  margin-bottom: var(--space-3);
+}
+
+.panel-tag {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-ash);
+  margin-bottom: var(--space-1);
+}
+
+.scene-current {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.scene-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-ash);
+}
+
+.scene-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-warm-white);
+}
+
+.objective-box {
+  background: rgba(38, 56, 42, 0.35);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xs);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.objective-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-ash);
+  margin-bottom: 2px;
+}
+
+.objective-text {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-warm-white);
+  line-height: 1.35;
+}
+
+.state-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+  margin-bottom: var(--space-3);
+}
+
+.state-metric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--color-ash);
+}
+
+.ui-icon {
+  display: inline-block;
+  vertical-align: middle;
+  stroke: var(--color-ash);
+  flex-shrink: 0;
+}
+
+.metric-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-ash);
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-warm-white);
+}
+
+.transitions-section {
+  margin-bottom: var(--space-3);
+}
+
+.section-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-ash);
+  margin-bottom: var(--space-2);
+}
+
+.transition-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-xs);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-warm-white);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  text-align: left;
+}
+
+.nav-btn:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
+}
+
+.nav-btn:active {
+  background: var(--color-forest);
+}
+
+.nav-btn .arrow-icon {
+  stroke: var(--color-ash);
+  transition: stroke 0.15s ease;
+}
+
+.nav-btn:hover .arrow-icon {
+  stroke: var(--color-warm-white);
+}
+
+.btn-target {
+  letter-spacing: 0.3px;
+}
+
+.no-transitions {
+  font-size: 11px;
+  color: var(--color-ash);
+  font-style: italic;
+  padding: var(--space-1) 0;
+}
+
+.panel-footer {
+  font-size: 10px;
+  color: var(--color-ash);
+  text-align: center;
+  border-top: 1px solid var(--panel-border);
+  padding-top: var(--space-2);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   FEEDBACK TOASTS (Section 29)
+   ========================================================================== */
+
+#toast-container {
+  position: absolute;
+  top: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  pointer-events: none;
+  z-index: 40;
+}
+
+.game-toast {
+  background: var(--color-charcoal);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xs);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-warm-white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  animation: toast-fade 2.2s ease forwards;
+}
+
+@keyframes toast-fade {
+  0% { opacity: 0; transform: translateY(-4px); }
+  10% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}

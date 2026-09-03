@@ -1,0 +1,116 @@
+# CRASH CAMP — SCENE-BASED PROJECT REQUIREMENTS & ROADMAP
+
+> **Core Rule:** EVERY SCENE IS AN INDEPENDENT, SELF-CONTAINED MODULE.
+> One scene does not tamper with another. Scenes connect declaratively via `sceneConfig.js` and persistent `GameState`.
+> Lifecycle: `CREATE → ENTER → UPDATE → EXIT → DISPOSE`.
+
+---
+
+## 📊 PROGRESS DASHBOARD
+
+- **Current Act:** ACT I — THE CRASH
+- **Active Scene Target:** Scene 1 — The Crash
+- **Scene Architecture Status:** 🟢 MULTI-SCENE ENGINE READY & VERIFIED
+- **Overall Progress:** 0 / 19 Story Scenes Complete (Scene Engine Functional)
+- **Next Milestone:** Build Scene 1 (Wreckage, smoke, salvage supplies, inspect emergency beacon)
+
+---
+
+## 🗺️ SCENE PROGRESS MATRIX (19 SCENES / 6 ACTS)
+
+| Act | Scene | Title | Core Objective / Event | Status |
+|:---:|:-----:|:------|:-----------------------|:------:|
+| **I** | **1** | **The Crash** | Wake up at wreckage, salvage emergency supplies, find beacon | 🟡 IN PROGRESS |
+| I | 2 | The Last Fire | Collect wood, fuel campfire/beacon power, survive the night | 🔒 LOCKED |
+| **II** | 3 | Morning After | Sunrise: rescue never came; investigate unusual aircraft damage | 🔒 LOCKED |
+| II | 4 | Search for Survivors | Discover footprints/blood/clues, track trail into wilderness | 🔒 LOCKED |
+| II | 5 | The Other Survivor | Find injured survivor; first dialogue choices (help/leave/question) | 🔒 LOCKED |
+| **III** | 6 | Into the Forest | Push deeper: rivers, caves, animal trails, strange markings | 🔒 LOCKED |
+| III | 7 | The Old Camp | Discover abandoned campsite, old tools, shelter, journal, radio | 🔒 LOCKED |
+| III | 8 | The Signal | Power old radio; receive mysterious warning broadcast | 🔒 LOCKED |
+| **IV** | 9 | Establishing Camp | Build permanent base: shelter, storage, fire pit, crafting | 🔒 LOCKED |
+| IV | 10 | More Survivors | New survivors arrive; personalities, community roles, conflict | 🔒 LOCKED |
+| IV | 11 | The Storm | Severe blizzard/tempest hits; food scarce, injuries, group survival | 🔒 LOCKED |
+| **V** | 12 | The Facility | Discover hidden bunker/research station linked to the signal | 🔒 LOCKED |
+| V | 13 | The Records | Search facility: recordings, flight logs, maps; crash wasn't random | 🔒 LOCKED |
+| V | 14 | The Truth | Major revelation: uncover the true conspiracy behind the flight | 🔒 LOCKED |
+| **VI** | 15 | Build the Way Out | Construct escape solution (radio tower / beacon / repair craft) | 🔒 LOCKED |
+| VI | 16 | The Journey | Group expedition across river, mountain, and facility to extraction | 🔒 LOCKED |
+| VI | 17 | The Final Night | Protect group through one final night (full circle to The Last Fire) | 🔒 LOCKED |
+| VI | 18 | Rescue | Dawn extraction: rescue confirmed, survivors react to leaving | 🔒 LOCKED |
+| VI | 19 | The Ending | Final decision: Rescue / Stay / Expose Truth / Sacrifice | 🔒 LOCKED |
+
+*Status Legend: 🟢 COMPLETE | 🟡 IN PROGRESS | 🔒 LOCKED*
+
+---
+
+## 🎯 ACTIVE TARGET: SCENE 1 — THE CRASH (ACT I)
+
+### Scene Narrative
+The player wakes up disoriented in the snow after Flight 402 crashes deep in the sub-zero wilderness. Smoke billows from the sheared aircraft fuselage.
+
+### Key Scene Elements
+- **Environment:** Smoldering crash clearing, sheared fuselage, tilted wing with airline livery, detached jet turbine.
+- **Atmosphere:** Thick rising smoke particles, flickering engine fire light, cold howling wind.
+- **Interactables:**
+  - Emergency ration crates (salvage food into persistent `GameState.inventory.food`)
+  - First aid kit near cockpit (restore health into persistent `GameState.player.health`)
+  - Damaged Emergency Beacon (inspect and discover dead battery / power requirement)
+- **Objective:** Salvage supplies and inspect the emergency beacon to trigger transition to Scene 2.
+
+---
+
+## 📖 STORY STRUCTURE BREAKDOWN
+
+### ACT I — THE CRASH
+- **Scene 1 — The Crash:** Wake up after crash. Wreckage, smoke, salvage supplies, inspect dead emergency beacon.
+- **Scene 2 — The Last Fire:** Beacon requires power & warmth. Gather wood, keep campfire burning, power beacon, survive 1-minute night. Sunrise arrives: "DISTRESS SIGNAL RECEIVED" — but no rescue arrives.
+
+### ACT II — STRANDED
+- **Scene 3 — Morning After:** Morning breaks; silence. Investigate wreckage deeper; discover flight documents revealing the crash was not an accident.
+- **Scene 4 — Search for Survivors:** Discover footprints, blood in the snow, broken branches; track the survivor's trail into the woods.
+- **Scene 5 — The Other Survivor:** Find an injured survivor; choose to help, question, or treat them. Survival becomes about people.
+
+### ACT III — THE FOREST
+- **Scene 6 — Into the Forest:** Explore beyond the clearing; rivers, caves, animal trails, strange markings.
+- **Scene 7 — The Old Camp:** Stumble upon a ruined campsite; old tools, maps, journal. Proof that others were stranded here before.
+- **Scene 8 — The Signal:** Power an abandoned transmitter; pick up a cryptic loop: "...repeat... do not approach... coordinates... they are still here...".
+
+### ACT IV — THE SETTLEMENT
+- **Scene 9 — Establishing Camp:** Realizing rescue isn't coming soon, establish a permanent fortified camp (shelter, storage, fire).
+- **Scene 10 — More Survivors:** Additional survivors appear; manage personalities, division of labor, and ideological conflicts.
+- **Scene 11 — The Storm:** A catastrophic storm tests the camp; maintaining shelter and warmth while tending to injured companions.
+
+### ACT V — THE TRUTH
+- **Scene 12 — The Facility:** Locate a hidden underground research / military communications complex.
+- **Scene 13 — The Records:** Explore the archives: flight manifests, black-box telemetry, classified research dossiers.
+- **Scene 14 — The Truth:** The climax of the mystery: why the plane was downed and what the facility was studying.
+
+### ACT VI — THE ESCAPE
+- **Scene 15 — Build the Way Out:** Pool resources and technical knowledge to construct an extraction beacon / repair signal tower.
+- **Scene 16 — The Journey:** Multi-stage trek across the river and mountain pass toward the extraction coordinates.
+- **Scene 17 — The Final Night:** Trapped at the extraction ridge; defend the camp and fire through one brutal final night.
+- **Scene 18 — Rescue:** Sunrise; rescue helicopters break through the clouds; survivor reactions to extraction.
+- **Scene 19 — The Ending:** Branching resolution:
+  - **Ending A (Rescue):** Return to civilization.
+  - **Ending B (Stay):** The wilderness is now home.
+  - **Ending C (The Truth):** Leak classified evidence to the world.
+  - **Ending D (Sacrifice):** One stays behind to ensure the others escape.
+
+---
+
+## ⚙️ SCENE-ISOLATION ARCHITECTURAL PRINCIPLES
+
+1. **Modular Scene Encapsulation:**
+   - Every scene lives in `src/scenes/scene-<id>/Scene<Id>.js`.
+   - Each scene instantiates and owns its own `THREE.Scene`, `camera`, and `World` (ECS).
+   - Leaving a scene calls `exit()` and `dispose()`, purging all geometries, materials, ECS entities, and listeners.
+2. **Data-Driven Declarative Transitions:**
+   - Scene ordering and allowed transitions are configured in `src/scenes/sceneConfig.js`.
+   - Scene registration is maintained in `src/scenes/sceneRegistry.js`.
+   - The engine supports reordering scenes by editing configuration without changing system code.
+3. **Cross-Scene State Persistence:**
+   - Persistent player vitals, inventory items, and narrative flags are managed exclusively by `src/core/GameState.js`.
+   - Entering a scene reads from `GameState`; exiting or interacting updates `GameState`.
+4. **Style Guide Compliance (`style_guide.txt`):**
+   - Anti-AI, physical game aesthetic: dark earth/forest palette, restrained radii (2px–4px), clean Lucide SVG icons, zero emojis, contextual physical key prompts (`<span class="key-badge">E</span>`).

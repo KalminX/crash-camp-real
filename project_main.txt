@@ -1,0 +1,554 @@
+CRASH CAMP — STORY STRUCTURE
+============================
+
+
+ACT I — THE CRASH
+-----------------
+
+SCENE 1 — THE CRASH
+
+The player wakes up after the plane crash.
+
+Key elements:
+- Damaged aircraft
+- Smoke
+- Wreckage
+- Basic exploration
+- Basic interaction
+- Emergency supplies
+- Emergency beacon
+
+Objective:
+Find a way to get the emergency beacon working.
+
+
+SCENE 2 — THE LAST FIRE
+
+The player discovers that the emergency equipment needs power.
+
+The player must:
+
+Collect wood
+    ↓
+Keep the fire alive
+    ↓
+Keep the beacon powered
+    ↓
+Survive the night
+    ↓
+Transmit the distress signal
+
+Ending:
+SUNRISE
+
+DISTRESS SIGNAL RECEIVED
+
+But no rescue arrives.
+
+This creates the first major mystery.
+
+
+==================================================
+
+
+ACT II — STRANDED
+-----------------
+
+SCENE 3 — MORNING AFTER
+
+The player wakes up after the night.
+
+The rescue never came.
+
+The player investigates the crash site.
+
+Discoveries:
+- Emergency supplies
+- Food
+- Medical equipment
+- Flight documents
+- Aircraft damage
+- Signs that something about the crash is unusual
+
+Story realization:
+
+THE CRASH MAY NOT HAVE BEEN AS STRAIGHTFORWARD AS IT SEEMED.
+
+
+SCENE 4 — SEARCH FOR SURVIVORS
+
+The player discovers signs that someone else survived.
+
+Clues:
+- Footprints
+- Blood
+- Broken branches
+- Abandoned belongings
+
+The player follows the trail.
+
+
+SCENE 5 — THE OTHER SURVIVOR
+
+The player finds another survivor.
+
+The survivor remembers very little about the crash.
+
+The player begins developing their first relationship.
+
+Possible choices:
+- HELP THEM
+- LEAVE THEM
+- QUESTION THEM
+
+The player realizes:
+
+SURVIVAL IS NOT JUST ABOUT RESOURCES.
+
+IT IS ABOUT PEOPLE.
+
+
+==================================================
+
+
+ACT III — THE FOREST
+--------------------
+
+SCENE 6 — INTO THE FOREST
+
+The player and survivor explore farther from the crash site.
+
+Discoveries:
+- Rivers
+- Caves
+- Animal trails
+- Strange markings
+- Abandoned equipment
+- Unknown structures
+
+The forest becomes increasingly dangerous.
+
+
+SCENE 7 — THE OLD CAMP
+
+The survivors discover evidence that someone lived here before.
+
+Discoveries:
+- Abandoned campsite
+- Old tools
+- Ruined shelter
+- Journal
+- Radio
+- Maps
+
+Major realization:
+
+THEY ARE NOT THE FIRST PEOPLE TO BECOME STRANDED HERE.
+
+
+SCENE 8 — THE SIGNAL
+
+The survivors discover an old radio/transmitter.
+
+It receives a strange signal.
+
+Possible transmission:
+
+"...repeat..."
+
+"...do not approach..."
+
+"...coordinates..."
+
+"...they are still here..."
+
+The story changes from:
+
+HOW DO WE SURVIVE?
+
+to:
+
+WHERE EXACTLY ARE WE?
+
+
+==================================================
+
+
+ACT IV — THE SETTLEMENT
+-----------------------
+
+SCENE 9 — ESTABLISHING CAMP
+
+The survivors realize they may be stranded for a long time.
+
+They establish a permanent camp.
+
+Gameplay expands into:
+
+- Shelter
+- Storage
+- Fire
+- Resource gathering
+- Basic crafting
+- Camp upgrades
+
+The camp becomes the player's home.
+
+
+SCENE 10 — MORE SURVIVORS
+
+More survivors begin appearing.
+
+The group grows.
+
+Possible survivors:
+- Survivor A
+- Survivor B
+- Survivor C
+- Survivor D
+
+They have different personalities and opinions.
+
+Conflict begins.
+
+One wants to stay.
+
+One wants to leave.
+
+One wants to explore.
+
+One wants to conserve resources.
+
+One doesn't trust the player.
+
+
+SCENE 11 — THE STORM
+
+A major storm hits.
+
+Problems:
+- Food becomes scarce
+- Fire becomes difficult to maintain
+- Shelter is damaged
+- Someone becomes injured
+- Resources become limited
+
+Major realization:
+
+KEEPING EVERYONE ALIVE IS HARDER THAN KEEPING YOURSELF ALIVE.
+
+
+==================================================
+
+
+ACT V — THE TRUTH
+-----------------
+
+SCENE 12 — THE FACILITY
+
+The survivors discover an old facility hidden deep in the wilderness.
+
+Possible identity:
+- Research station
+- Communications station
+- Military facility
+- Weather station
+- Experimental facility
+
+The facility is connected to the mysterious signal.
+
+
+SCENE 13 — THE RECORDS
+
+The player explores the facility.
+
+Discoveries:
+- Recordings
+- Documents
+- Photographs
+- Maps
+- Research
+- Flight information
+
+The player begins connecting the pieces.
+
+Major realization:
+
+THE CRASH WAS NOT RANDOM.
+
+
+SCENE 14 — THE TRUTH
+
+The player finally discovers what caused the crash.
+
+Possible explanations:
+
+- The aircraft encountered something unusual.
+- Someone deliberately caused the crash.
+- The location is hiding something.
+- The survivors were not random passengers.
+- The facility was connected to the aircraft.
+
+The exact truth can be decided later.
+
+The important thing is that the mystery reaches its major reveal here.
+
+
+==================================================
+
+
+ACT VI — THE ESCAPE
+-------------------
+
+SCENE 15 — BUILD THE WAY OUT
+
+The survivors discover a possible way to escape.
+
+Possible solutions:
+- Repair the aircraft
+- Reach an old radio tower
+- Repair a boat
+- Activate an emergency transmitter
+- Reach an extraction zone
+- Build a large-scale signal system
+
+Everything learned and built throughout the game now becomes useful.
+
+
+SCENE 16 — THE JOURNEY
+
+The survivors leave the camp.
+
+Possible journey:
+
+CAMP
+  ↓
+FOREST
+  ↓
+RIVER
+  ↓
+MOUNTAIN
+  ↓
+FACILITY
+  ↓
+EXTRACTION POINT
+
+
+This can eventually become a large exploration/procedural-world section.
+
+
+SCENE 17 — THE FINAL NIGHT
+
+The survivors are trapped.
+
+The escape/rescue mechanism needs time.
+
+The player must protect the group through one final night.
+
+The first game was:
+
+THE LAST FIRE
+
+The final chapter becomes:
+
+THE FINAL NIGHT
+
+The difference:
+
+THE LAST FIRE
+
+Player
+    ↓
+Fire
+    ↓
+Survival
+
+
+THE FINAL NIGHT
+
+Player
+    ↓
+Survivors
+    ↓
+Camp
+    ↓
+Resources
+    ↓
+Everyone's survival
+
+
+The story has come full circle.
+
+
+SCENE 18 — RESCUE
+
+Morning arrives.
+
+The signal works.
+
+Rescue finally arrives.
+
+Possible presentation:
+
+RESCUE SIGNAL CONFIRMED
+
+SURVIVORS LOCATED
+
+EXTRACTION IN PROGRESS
+
+
+The survivors react differently.
+
+Some are relieved.
+
+Some don't want to leave.
+
+Some have changed too much.
+
+
+SCENE 19 — THE ENDING
+
+The player makes a final decision.
+
+Possible endings:
+
+ENDING A — RESCUE
+
+Everyone leaves.
+
+RESCUE CONFIRMED
+
+SURVIVORS: 7
+
+HOME
+
+
+ENDING B — STAY
+
+The player decides the island has become home.
+
+WE WERE STRANDED HERE.
+
+NOW WE CHOOSE TO STAY.
+
+
+ENDING C — THE TRUTH
+
+The player exposes what caused the crash.
+
+The outside world finally learns what happened.
+
+
+ENDING D — SACRIFICE
+
+Someone stays behind so everyone else can escape.
+
+
+==================================================
+
+
+FULL STORY FLOW
+---------------
+
+THE CRASH
+    ↓
+THE LAST FIRE
+    ↓
+SUNRISE
+    ↓
+MORNING AFTER
+    ↓
+SEARCH FOR SURVIVORS
+    ↓
+THE OTHER SURVIVOR
+    ↓
+INTO THE FOREST
+    ↓
+THE OLD CAMP
+    ↓
+THE SIGNAL
+    ↓
+ESTABLISHING CAMP
+    ↓
+MORE SURVIVORS
+    ↓
+THE STORM
+    ↓
+THE FACILITY
+    ↓
+THE RECORDS
+    ↓
+THE TRUTH
+    ↓
+BUILD THE WAY OUT
+    ↓
+THE JOURNEY
+    ↓
+THE FINAL NIGHT
+    ↓
+RESCUE
+    ↓
+THE ENDING
+
+
+==================================================
+
+
+STORY ACTS
+----------
+
+ACT I
+THE CRASH
+Purpose: Introduce the player and establish survival.
+
+
+ACT II
+STRANDED
+Purpose: Introduce other survivors and establish the mystery.
+
+
+ACT III
+THE FOREST
+Purpose: Expand exploration and reveal that others were here before.
+
+
+ACT IV
+THE SETTLEMENT
+Purpose: Transform survival into community and introduce relationships/conflict.
+
+
+ACT V
+THE TRUTH
+Purpose: Reveal the mystery behind the crash.
+
+
+ACT VI
+THE ESCAPE
+Purpose: Resolve the survival story and give the player an ending.
+
+
+==================================================
+
+
+LONG-TERM GAME PROGRESSION
+--------------------------
+
+SURVIVE
+    ↓
+STABILIZE
+    ↓
+EXPLORE
+    ↓
+DISCOVER
+    ↓
+BUILD
+    ↓
+COOPERATE
+    ↓
+CONFLICT
+    ↓
+UNCOVER THE TRUTH
+    ↓
+ESCAPE
+    ↓
+CHOOSE YOUR ENDING

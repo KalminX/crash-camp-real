@@ -1,0 +1,1517 @@
+CRASH CAMP — UI / UX STYLE GUIDE
+ANTI-AI / HUMAN-DESIGNED GAME UI
+
+## PURPOSE
+
+Crash Camp should feel like a handcrafted survival game, not an AI-generated website or SaaS dashboard.
+
+The interface should communicate:
+
+* Survival
+* Wilderness
+* Utility
+* Tension
+* Physicality
+* Exploration
+* Simplicity
+* Environmental storytelling
+
+The UI should feel like something designed by an experienced game UI designer.
+
+Avoid anything that makes the interface look like:
+
+* An AI-generated landing page
+* A SaaS dashboard
+* A cryptocurrency app
+* A generic admin panel
+* A template from a UI component library
+* A Tailwind showcase
+* A futuristic AI interface
+* A Dribbble concept that ignores usability
+
+==================================================
+
+1. CORE VISUAL PHILOSOPHY
+   ==================================================
+
+The world is the primary interface.
+
+The HUD should stay out of the player's way.
+
+Use UI only when information is genuinely useful.
+
+Prefer:
+
+```
+WORLD
+  ↓
+PLAYER
+  ↓
+SUBTLE HUD
+  ↓
+CONTEXTUAL INFORMATION
+```
+
+Not:
+
+```
+CARD
+CARD
+CARD
+CARD
+CARD
+```
+
+The interface should feel:
+
+* restrained
+* physical
+* slightly rugged
+* functional
+* atmospheric
+* readable
+* believable
+
+Do not over-design.
+
+==================================================
+2. ABSOLUTE ANTI-AI UI RULES
+============================
+
+DO NOT use:
+
+* excessive rounded cards
+* giant border-radius values
+* excessive glassmorphism
+* floating gradients
+* purple/blue AI gradients
+* neon cyan interfaces
+* excessive shadows
+* glowing borders everywhere
+* gradient text
+* animated blobs
+* decorative background circles
+* random geometric decorations
+* excessive pills
+* excessive badges
+* excessive tooltips
+* excessive modals
+* excessive dropdowns
+* excessive cards
+* excessive empty space
+* huge headings
+* generic "Welcome back" interfaces
+* generic SaaS dashboards
+* generic AI assistant styling
+* excessive iconography
+* emoji as interface icons
+* random sparkles
+* "magic" wand icons for ordinary actions
+* meaningless animations
+* excessive hover animations
+* button scaling on hover
+* unnecessary loading spinners
+* fake statistics
+* decorative progress bars
+* fake AI-style terminology
+* unnecessary uppercase text everywhere
+
+Do not make every element look like a floating rounded rectangle.
+
+==================================================
+3. COLOR SYSTEM
+===============
+
+The UI should derive its visual identity from:
+
+* forest
+* ash
+* earth
+* fire
+* metal
+* night sky
+
+PRIMARY COLORS
+
+Deep Forest:
+#17251C
+
+Forest:
+#26382A
+
+Moss:
+#52634A
+
+Earth:
+#594A3A
+
+Dark Earth:
+#342B23
+
+Charcoal:
+#171918
+
+Ash:
+#B8B4A8
+
+Warm White:
+#E7E1D3
+
+Fire:
+#D96B32
+
+Danger:
+#A83E32
+
+Success:
+#7D9B5B
+
+RULE:
+
+Do not use every color simultaneously.
+
+Most of the interface should be dark neutral/earth tones.
+
+Fire orange should be reserved for:
+
+* campfire state
+* heat
+* burning objects
+* important survival warnings
+* active objectives involving fire
+
+Danger red should be rare.
+
+Do not turn the UI into a red dashboard whenever something is wrong.
+
+==================================================
+4. TYPOGRAPHY
+=============
+
+Use a strong, readable sans-serif.
+
+Preferred:
+
+* Inter
+* IBM Plex Sans
+* Source Sans 3
+* system-ui
+
+For atmospheric headings, a restrained condensed font may be used if it genuinely improves the game identity.
+
+Do not use:
+
+* futuristic sci-fi fonts
+* handwritten fonts
+* excessive display fonts
+* decorative fonts for body text
+
+TYPOGRAPHIC HIERARCHY
+
+Game title:
+Large but restrained.
+
+Scene title:
+Medium/large.
+
+HUD information:
+Small to medium.
+
+Interaction prompts:
+Small but highly readable.
+
+Secondary information:
+Smaller and lower contrast.
+
+Never make everything bold.
+
+==================================================
+5. BORDER RADIUS
+================
+
+Use restrained corner radii.
+
+Preferred:
+
+2px
+4px
+6px
+
+Occasionally:
+
+8px
+
+Avoid:
+
+12px+
+16px
+20px
+24px
+9999px
+
+Do not make every UI element a pill.
+
+Buttons should generally have subtle rectangular geometry.
+
+The UI should feel like physical equipment rather than floating mobile-app controls.
+
+==================================================
+6. PANELS
+=========
+
+Panels should look functional.
+
+Use:
+
+* dark translucent surfaces
+* subtle borders
+* slight transparency
+* restrained shadows
+* thin separators
+
+Example visual concept:
+
+```
+┌─────────────────────────┐
+│ FIRE                    │
+│                         │
+│ ███████████░░░          │
+│                         │
+│ 02:41                   │
+└─────────────────────────┘
+```
+
+Not:
+
+```
+╭─────────────────────────╮
+│ 🔥 Fire                  │
+│                         │
+│  ┌───────────────────┐  │
+│  │ ████████████████  │  │
+│  └───────────────────┘  │
+╰─────────────────────────╯
+```
+
+Panels should not dominate the screen.
+
+==================================================
+7. HUD
+======
+
+The HUD should be minimal.
+
+During gameplay, prioritize:
+
+TOP / CORNER:
+
+```
+SURVIVAL TIME
+FIRE STATE
+```
+
+BOTTOM:
+
+```
+INTERACTION PROMPT
+```
+
+OPTIONAL:
+
+```
+WOOD COUNT
+```
+
+Example:
+
+```
+NIGHT
+02:43
+
+FIRE
+71%
+```
+
+Bottom-center:
+
+```
+[E]  PICK UP LOG
+```
+
+The player should still see the environment.
+
+Do not cover the center of the screen with UI.
+
+==================================================
+8. INTERACTION PROMPTS
+======================
+
+Interaction prompts should be contextual.
+
+Example:
+
+```
+[E] Pick up log
+
+[E] Add wood to fire
+
+[E] Inspect wreckage
+
+[E] Activate beacon
+```
+
+Use a real keyboard-key visual.
+
+Example:
+
+```
+┌───┐
+│ E │  Pick up log
+└───┘
+```
+
+Do not use:
+
+```
+✨ Interact
+
+🚀 Activate
+
+🔥 Add Wood
+```
+
+Use actual icons only where they improve comprehension.
+
+==================================================
+9. ICON SYSTEM
+==============
+
+NEVER use emoji as UI icons.
+
+Do not use:
+
+🔥
+🌲
+🪵
+❤️
+⚡
+✨
+🚀
+🏕️
+❌
+✅
+
+as primary interface icons.
+
+Emoji can exist in informal developer/debug text if absolutely necessary, but never in the production game HUD.
+
+USE A PROFESSIONAL ICON LIBRARY.
+
+Preferred icon library:
+
+LUCIDE ICONS
+
+Use Lucide because:
+
+* open source
+* clean
+* consistent
+* lightweight
+* readable
+* large icon set
+* works well with vanilla JavaScript
+* does not have a generic "AI app" appearance when used carefully
+
+Suggested icons:
+
+Wood / logs:
+Package
+Box
+Layers
+
+Fire:
+Flame
+
+Health:
+Heart
+
+Interaction:
+Hand
+MousePointer2
+
+Inventory:
+Backpack
+
+Map:
+Map
+
+Objective:
+Target
+
+Settings:
+Settings
+
+Pause:
+Pause
+
+Play:
+Play
+
+Restart:
+RotateCcw
+
+Close:
+X
+
+Back:
+ArrowLeft
+
+Forward:
+ArrowRight
+
+Warning:
+TriangleAlert
+
+Information:
+Info
+
+Success:
+Check
+
+Time:
+Clock3
+
+Location:
+MapPin
+
+Signal:
+Radio
+
+Beacon:
+RadioTower
+
+Plane wreckage:
+Plane
+
+Search:
+Search
+
+Visibility:
+Eye
+
+Sound:
+Volume2
+
+Mute:
+VolumeX
+
+IMPORTANT:
+
+Do not place icons everywhere just because the library exists.
+
+==================================================
+10. ICON RULES
+==============
+
+Icons must communicate meaning.
+
+Good:
+
+```
+[Flame]  FIRE
+
+[Backpack]  INVENTORY
+
+[RadioTower]  BEACON
+```
+
+Bad:
+
+```
+[Sparkles]  Continue
+
+[Rocket]  Settings
+
+[MagicWand]  Start
+```
+
+Use semantically appropriate icons.
+
+Do not use icons as decoration.
+
+ICON SIZING
+
+Small:
+14px
+
+Normal:
+16px
+
+Large:
+20px
+
+Major interface symbol:
+24px
+
+Avoid giant 48–64px icons unless they are genuinely part of the game presentation.
+
+ICON STROKE
+
+Use consistent Lucide stroke width.
+
+Default:
+
+2
+
+Do not mix:
+
+1
+1.5
+2
+3
+4
+
+randomly throughout the interface.
+
+==================================================
+11. BUTTONS
+===========
+
+Buttons should feel like physical controls.
+
+Primary button:
+
+```
+┌─────────────────────────┐
+│       CONTINUE          │
+└─────────────────────────┘
+```
+
+Secondary:
+
+```
+┌─────────────────────────┐
+│       SETTINGS          │
+└─────────────────────────┘
+```
+
+Avoid:
+
+```
+╭─────────────────────────╮
+│ ✨ Continue             │
+╰─────────────────────────╯
+```
+
+Avoid pill buttons unless there is a specific reason.
+
+Buttons should have:
+
+* clear hover state
+* clear active state
+* clear disabled state
+* keyboard focus state
+
+Hover should be subtle.
+
+Do not make buttons jump, scale dramatically, rotate, or glow.
+
+==================================================
+12. SCENE NAVIGATION
+====================
+
+Scene navigation should be functional rather than looking like a website navbar.
+
+For the development scene system:
+
+```
+CURRENT SCENE
+FOREST CLEARING
+
+─────────────────────
+
+[ Crash Site ]
+
+[ Campsite ]
+```
+
+The buttons should be generated from sceneConfig.
+
+Do not build a giant navigation dashboard.
+
+==================================================
+13. START SCREEN
+================
+
+The start screen should be atmospheric.
+
+Prefer:
+
+```
+CRASH CAMP
+
+THE LAST FIRE
+
+Survive the night.
+
+[ BEGIN ]
+
+[ SETTINGS ]
+
+[ QUIT ]
+```
+
+The environment should remain visible behind the UI.
+
+Avoid:
+
+```
+Welcome to Crash Camp!
+Your AI-powered survival experience.
+[ Get Started 🚀 ]
+```
+
+==================================================
+14. PAUSE MENU
+==============
+
+Minimal.
+
+```
+PAUSED
+
+[ Resume ]
+
+[ Settings ]
+
+[ Restart ]
+
+[ Main Menu ]
+```
+
+No cards for every option.
+
+No excessive descriptions.
+
+==================================================
+15. WIN SCREEN
+==============
+
+The ending should feel like a game ending, not a web form.
+
+Example:
+
+```
+DISTRESS SIGNAL RECEIVED
+
+RESCUE COORDINATES LOCKED
+
+─────────────────
+
+DAY 2
+
+RESCUE IS COMING
+
+[ Continue ]
+```
+
+Use typography, darkness, sound, and timing to create emotion.
+
+Do not add:
+
+```
+🎉 CONGRATULATIONS!!!
+You successfully completed the mission!
+[ Share Achievement ]
+```
+
+==================================================
+16. LOSE SCREEN
+===============
+
+Keep it quiet.
+
+Example:
+
+```
+THE FIRE WENT OUT
+
+NIGHT WON
+
+[ TRY AGAIN ]
+```
+
+Do not over-explain failure.
+
+The environment and audio should communicate most of the emotion.
+
+==================================================
+17. ANIMATION
+=============
+
+Animation should have a purpose.
+
+GOOD:
+
+* scene fade
+* subtle HUD fade
+* fire intensity changes
+* interaction prompt appearing
+* sunrise transition
+* button state transition
+* damage feedback
+* environmental movement
+
+BAD:
+
+* every element sliding in
+* bouncing buttons
+* floating cards
+* pulsing icons
+* constant glowing borders
+* infinite animations
+* excessive parallax
+* random particle effects behind menus
+
+Animation should generally be:
+
+FAST:
+100–180ms
+
+NORMAL:
+180–300ms
+
+ATMOSPHERIC:
+300–800ms
+
+Major transitions can be slower.
+
+==================================================
+18. SHADOWS
+===========
+
+Use shadows sparingly.
+
+Prefer environmental depth over UI shadows.
+
+UI shadows should primarily separate UI from the game world.
+
+Avoid giant soft shadows that make every panel look like a floating card.
+
+==================================================
+19. TRANSPARENCY
+================
+
+Transparency should serve readability.
+
+Good:
+
+```
+rgba(10, 12, 10, 0.70)
+```
+
+Bad:
+
+```
+extremely transparent glass panels everywhere
+```
+
+Avoid turning the entire HUD into frosted glass.
+
+Crash Camp is not a futuristic spaceship interface.
+
+==================================================
+20. PROGRESS BARS
+=================
+
+Progress bars should communicate real game state.
+
+Good:
+
+```
+FIRE
+█████████████░░░  78%
+```
+
+Bad:
+
+```
+87% COMPLETION
+█████████████████
+```
+
+Progress bars should have physical meaning.
+
+Examples:
+
+* Fire fuel
+* Beacon charge
+* Health
+* Objective progress
+
+Do not use progress bars decoratively.
+
+==================================================
+21. STATUS INDICATORS
+=====================
+
+Avoid excessive status pills.
+
+Instead of:
+
+```
+[ACTIVE]
+[ONLINE]
+[SAFE]
+[READY]
+```
+
+Use typography and small indicators.
+
+Example:
+
+```
+FIRE
+● BURNING
+```
+
+or:
+
+```
+BEACON
+SIGNAL: SEARCHING
+```
+
+If a colored indicator is necessary, keep it small.
+
+==================================================
+22. INVENTORY
+=============
+
+Inventory should resemble game inventory rather than ecommerce.
+
+Example:
+
+```
+INVENTORY
+
+┌─────┐
+│     │
+│  3  │
+│     │
+└─────┘
+  WOOD
+```
+
+Avoid product-card styling.
+
+Do not use:
+
+```
+╭────────────────╮
+│ 🪵              │
+│ Firewood        │
+│                 │
+│ Quantity: 3     │
+╰────────────────╯
+```
+
+==================================================
+23. DEBUG UI
+============
+
+Development/debug UI should be visually separate from production UI.
+
+It may contain:
+
+```
+FPS: 59
+Entities: 47
+Scene: crash-site
+ECS Systems: 8
+Draw Calls: 124
+```
+
+Use a simple monospace font.
+
+Debug UI can be ugly.
+
+Production UI cannot.
+
+==================================================
+24. RESPONSIVE DESIGN
+=====================
+
+The game should work across:
+
+* desktop
+* laptop
+* smaller screens where practical
+
+Never allow UI to overlap the essential gameplay area.
+
+Use:
+
+```
+clamp()
+max-width
+viewport-relative spacing
+flexible layouts
+```
+
+Do not simply shrink everything.
+
+==================================================
+25. SPACING
+===========
+
+Use a consistent spacing scale.
+
+Prefer:
+
+4px
+8px
+12px
+16px
+24px
+32px
+48px
+64px
+
+Avoid arbitrary:
+
+13px
+19px
+27px
+37px
+43px
+
+unless required for a specific visual alignment.
+
+==================================================
+26. ACCESSIBILITY
+=================
+
+All interactive elements must have:
+
+* visible focus state
+* readable contrast
+* keyboard support
+* meaningful labels
+* appropriate aria-labels where icons are used without text
+
+Never rely only on color to communicate state.
+
+Example:
+
+BAD:
+
+```
+red = danger
+green = safe
+```
+
+BETTER:
+
+```
+FIRE — LOW
+FIRE — STABLE
+```
+
+==================================================
+27. RESPONSIVE ICON BUTTONS
+===========================
+
+Icon-only buttons are allowed when the meaning is obvious.
+
+Example:
+
+```
+[X]
+[←]
+[⚙]  ← use actual Settings icon, NOT emoji
+```
+
+Every icon-only button should have:
+
+* tooltip/title
+* accessible label
+* visible hover state
+* visible focus state
+
+Do not create mysterious icon buttons.
+
+==================================================
+28. GAME WORLD UI
+=================
+
+Whenever possible, prefer diegetic or contextual UI.
+
+Example:
+
+The player approaches the beacon.
+
+Instead of a giant HUD notification:
+
+```
+╭──────────────────────────╮
+│ BEACON FOUND!!!          │
+╰──────────────────────────╯
+```
+
+Use:
+
+```
+[E] Inspect beacon
+```
+
+The environment should do the storytelling.
+
+==================================================
+29. NOTIFICATIONS
+=================
+
+Notifications should be rare.
+
+Use them for meaningful events:
+
+```
+WOOD COLLECTED
++1
+
+FIRE FUEL LOW
+
+BEACON POWER RESTORED
+```
+
+Do not notify the player about every tiny action.
+
+==================================================
+30. SOUND + UI
+==============
+
+UI feedback should work with sound.
+
+Examples:
+
+Button:
+subtle click
+
+Pickup:
+short physical pickup sound
+
+Fire:
+crackling
+
+Warning:
+subtle low warning tone
+
+Beacon:
+electrical signal sound
+
+Win:
+environmental/audio transition
+
+Avoid generic corporate notification sounds.
+
+==================================================
+31. MOBILE / TOUCH
+==================
+
+If touch support is added later:
+
+Do not simply turn desktop buttons into giant mobile cards.
+
+Controls should be designed around:
+
+* thumb reach
+* visibility
+* minimal obstruction
+* contextual interaction
+
+==================================================
+32. VISUAL HIERARCHY
+====================
+
+Every screen should have ONE dominant element.
+
+Example:
+
+Gameplay:
+WORLD
+
+Start screen:
+GAME TITLE
+
+Win:
+DISTRESS SIGNAL RECEIVED
+
+Pause:
+PAUSED
+
+Do not make:
+
+TITLE
+BUTTON
+BUTTON
+STATUS
+CARD
+ICON
+BADGE
+TEXT
+
+all equally visually loud.
+
+==================================================
+33. TEXT STYLE
+==============
+
+Use short, confident game language.
+
+GOOD:
+
+```
+FIRE LOW
+
+FIND WOOD
+
+KEEP THE FIRE ALIVE
+
+NIGHT FALLING
+
+BEACON POWER: 62%
+
+SIGNAL RECEIVED
+```
+
+BAD:
+
+```
+Warning! Your fire fuel level has become critically low. 
+You should probably collect more firewood immediately.
+```
+
+The game should communicate quickly.
+
+==================================================
+34. CAPITALIZATION
+==================
+
+Use uppercase sparingly for:
+
+* HUD labels
+* objectives
+* major game announcements
+* button labels
+
+Do not uppercase every sentence.
+
+Example:
+
+```
+FIRE
+
+02:41 REMAINING
+```
+
+Good.
+
+Avoid:
+
+```
+YOUR CURRENT SURVIVAL TIME IS...
+```
+
+==================================================
+35. EMPTY STATES
+================
+
+If something is empty:
+
+```
+INVENTORY EMPTY
+```
+
+Not:
+
+```
+╭─────────────────────────╮
+│ 📦                       │
+│ Nothing here yet!        │
+│ Start collecting items. │
+╰─────────────────────────╯
+```
+
+Keep it grounded.
+
+==================================================
+36. LOADING STATES
+==================
+
+Use loading screens only when genuinely needed.
+
+Example:
+
+```
+LOADING FOREST
+
+Generating terrain...
+```
+
+Avoid generic:
+
+```
+✨ Preparing your experience...
+```
+
+==================================================
+37. ERROR STATES
+================
+
+Errors should be direct.
+
+GOOD:
+
+```
+FAILED TO LOAD SCENE
+
+[ RETRY ]
+```
+
+BAD:
+
+```
+Oops! Something went wrong 😢
+Don't worry, we're working on it!
+```
+
+==================================================
+38. RESPONSIVE BREAKPOINT BEHAVIOR
+==================================
+
+Desktop:
+
+```
+HUD can occupy corners.
+```
+
+Laptop:
+
+```
+Reduce HUD spacing.
+```
+
+Small screens:
+
+```
+Collapse secondary information.
+```
+
+Never reduce font size until text becomes difficult to read.
+
+==================================================
+39. CSS PHILOSOPHY
+==================
+
+Prefer CSS variables for design tokens.
+
+Example conceptual system:
+
+--color-bg
+--color-surface
+--color-surface-light
+--color-text
+--color-text-muted
+--color-fire
+--color-danger
+--color-success
+
+--radius-sm
+--radius-md
+
+--space-1
+--space-2
+--space-3
+--space-4
+
+--font-ui
+--font-mono
+
+Do not scatter arbitrary values throughout CSS.
+
+==================================================
+40. COMPONENT PHILOSOPHY
+========================
+
+Build UI components around GAME PURPOSE.
+
+Good:
+
+```
+HUD
+InteractionPrompt
+Inventory
+PauseMenu
+GameOverScreen
+VictoryScreen
+SceneNavigation
+```
+
+Avoid generic component explosion:
+
+```
+GlassCard
+GradientCard
+GlowCard
+PremiumCard
+AIButton
+MagicButton
+FloatingPanel
+AnimatedContainer
+```
+
+The game does not need a UI framework disguised as a game.
+
+==================================================
+41. SCENE-SPECIFIC UI
+=====================
+
+Each scene may have its own contextual presentation.
+
+Forest:
+
+```
+survival information
+```
+
+Crash site:
+
+```
+wreckage / beacon information
+```
+
+Campsite:
+
+```
+fire / shelter information
+```
+
+But the design language must remain consistent.
+
+==================================================
+42. DEVELOPMENT SCENE NAVIGATION
+================================
+
+For the multi-scene architecture, provide a small developer navigation control.
+
+Example:
+
+```
+SCENE
+Forest Clearing
+
+[ Crash Site ]
+[ Campsite ]
+```
+
+This should be clearly identifiable as development/navigation UI.
+
+Do not make it look like part of the fictional world unless intentionally designed that way.
+
+==================================================
+43. NO RANDOM ICONS
+===================
+
+Before adding an icon, ask:
+
+1. Does it communicate information?
+2. Is the meaning immediately recognizable?
+3. Is it consistent with the icon system?
+4. Does removing it make the UI worse?
+
+If not, remove it.
+
+==================================================
+44. NO RANDOM DECORATION
+========================
+
+Every visual element should serve one of:
+
+* hierarchy
+* readability
+* navigation
+* feedback
+* atmosphere
+* storytelling
+
+If it serves none of these:
+
+REMOVE IT.
+
+==================================================
+45. FINAL QUALITY TEST
+======================
+
+Before considering any UI complete, inspect it and ask:
+
+Does this look like an AI-generated website?
+
+If YES:
+simplify it.
+
+Does every element have huge rounded corners?
+
+If YES:
+reduce radius.
+
+Are there gradients everywhere?
+
+If YES:
+remove most of them.
+
+Are there too many cards?
+
+If YES:
+remove cards and use spacing/separators.
+
+Are there emojis?
+
+If YES:
+replace with Lucide icons or remove them.
+
+Are icons being used as decoration?
+
+If YES:
+remove them.
+
+Does the HUD obstruct gameplay?
+
+If YES:
+simplify/reposition it.
+
+Are animations everywhere?
+
+If YES:
+remove most of them.
+
+Does every button look like a SaaS CTA?
+
+If YES:
+redesign them as restrained game controls.
+
+Does the interface feel like a generic dashboard?
+
+If YES:
+redesign it around the game world.
+
+Does the environment remain visually dominant?
+
+If NO:
+reduce the UI.
+
+FINAL PRINCIPLE:
+
+Crash Camp should look like a GAME first.
+
+The UI should support the experience,
+not advertise itself.
