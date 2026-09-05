@@ -347,29 +347,11 @@ export const ProceduralModels = {
   },
 
   /**
-   * Procedural Clearing Ground (Circular mesh with subtle snowy ground & perimeter border)
+   * Procedural Clearing Ground (Completely flat terrain, guaranteed y = 0)
    */
-  createClearingGround(radius = 45) {
-    const geo = new THREE.PlaneGeometry(radius * 2, radius * 2, 48, 48);
+  createClearingGround(radius = 65) {
+    const geo = new THREE.PlaneGeometry(radius * 2, radius * 2, 2, 2);
     geo.rotateX(-Math.PI / 2);
-
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const dist = Math.sqrt(x * x + z * z);
-
-      // Keep center clearing flat for camp & plane, raise perimeter into gentle hills
-      let y = 0;
-      if (dist > 16) {
-        const factor = (dist - 16) / (radius - 16);
-        y = Math.sin(x * 0.2) * Math.cos(z * 0.2) * 1.5 * factor + (factor * 3.2);
-      } else {
-        y = (Math.sin(x * 0.4) + Math.cos(z * 0.4)) * 0.15;
-      }
-      pos.setY(i, y);
-    }
-    geo.computeVertexNormals();
 
     const groundMat = new THREE.MeshStandardMaterial({
       color: 0x485854, // Soft frosted forest floor with clear visibility
@@ -379,6 +361,7 @@ export const ProceduralModels = {
     });
 
     const mesh = new THREE.Mesh(geo, groundMat);
+    mesh.position.y = 0;
     mesh.receiveShadow = true;
     return mesh;
   },
@@ -540,36 +523,349 @@ export const ProceduralModels = {
   },
 
   /**
-   * Procedural Hill & Cave Outcropping (Rocky alcove on edge of clearing)
+   * Procedural Humanoid Character (Composite shapes: parka, cargo pants, boots, backpack, beanie)
+   * With modular articulated pivots for legs, arms, head, and torso.
    */
-  createHillAndCave() {
-    const group = new THREE.Group();
+  createHumanoidCharacter() {
+    const characterGroup = new THREE.Group();
+    characterGroup.name = 'HumanoidSurvivor';
 
-    // Elevated rock hill mound
-    const hillGeo = new THREE.DodecahedronGeometry(4.8, 1);
-    const hillMat = new THREE.MeshStandardMaterial({
-      color: 0x3e4c52,
-      roughness: 0.95,
+    // Materials (Vibrant, high-contrast alpine survival palette for crisp visibility)
+    const parkaMat = new THREE.MeshStandardMaterial({
+      color: 0x486455, // Clear alpine slate green
+      roughness: 0.75,
+      metalness: 0.1,
       flatShading: true,
     });
-    const hill = new THREE.Mesh(hillGeo, hillMat);
-    hill.scale.set(1.4, 0.8, 1.2);
-    hill.position.set(0, 1.8, 0);
-    hill.castShadow = true;
-    hill.receiveShadow = true;
-    group.add(hill);
-
-    // Cave opening archway (recessed dark cavern)
-    const caveMouthGeo = new THREE.CylinderGeometry(1.4, 1.6, 2.2, 8, 1, false, 0, Math.PI);
-    const caveMouthMat = new THREE.MeshBasicMaterial({
-      color: 0x08090d,
-      side: THREE.BackSide,
+    const pantsMat = new THREE.MeshStandardMaterial({
+      color: 0x3a4248, // Defined charcoal winter cargo trousers
+      roughness: 0.8,
+      flatShading: true,
     });
-    const cave = new THREE.Mesh(caveMouthGeo, caveMouthMat);
-    cave.rotation.x = Math.PI / 2;
-    cave.position.set(0, 1.2, 1.8);
-    group.add(cave);
+    const bootsMat = new THREE.MeshStandardMaterial({
+      color: 0x222528, // Rugged sub-zero snow boots
+      roughness: 0.75,
+      flatShading: true,
+    });
+    const gloveMat = new THREE.MeshStandardMaterial({
+      color: 0x363432, // Insulated leather mittens/gloves
+      roughness: 0.7,
+      flatShading: true,
+    });
+    const skinMat = new THREE.MeshStandardMaterial({
+      color: 0xedba93, // Warm exposed face
+      roughness: 0.55,
+      flatShading: true,
+    });
+    const hoodMat = new THREE.MeshStandardMaterial({
+      color: 0x786a5e, // Warm knit beanie / fur-lined hood
+      roughness: 0.85,
+      flatShading: true,
+    });
+    const backpackMat = new THREE.MeshStandardMaterial({
+      color: 0x7d5b3d, // High-visibility weathered canvas pack
+      roughness: 0.8,
+      flatShading: true,
+    });
+    const bedrollMat = new THREE.MeshStandardMaterial({
+      color: 0x4d755e, // Rolled foam/tarp bedroll
+      roughness: 0.85,
+      flatShading: true,
+    });
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: 0xe5ded3, // Crisp fleece/fur collar trim
+      roughness: 0.9,
+      flatShading: true,
+    });
 
+    // 1. Pelvis / Hips
+    const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.22, 0.28), pantsMat);
+    pelvis.position.y = 0.88;
+    pelvis.castShadow = true;
+    pelvis.receiveShadow = true;
+    characterGroup.add(pelvis);
+
+    // 2. Torso (Parka jacket)
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.58, 0.34), parkaMat);
+    torso.position.y = 1.25;
+    torso.castShadow = true;
+    torso.receiveShadow = true;
+    characterGroup.add(torso);
+
+    // Fleece / Fur trim collar
+    const collar = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.12, 0.36), trimMat);
+    collar.position.y = 1.54;
+    collar.castShadow = true;
+    characterGroup.add(collar);
+
+    // 3. Survival Backpack & Bedroll on back
+    const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.44, 0.22), backpackMat);
+    backpack.position.set(0, 1.25, -0.24);
+    backpack.castShadow = true;
+    characterGroup.add(backpack);
+
+    const bedroll = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.44, 8), bedrollMat);
+    bedroll.rotation.z = Math.PI / 2;
+    bedroll.position.set(0, 1.51, -0.24);
+    bedroll.castShadow = true;
+    characterGroup.add(bedroll);
+
+    // 4. Head Group (Head, face, beanie)
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.68, 0);
+
+    const face = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), skinMat);
+    face.position.y = 0;
+    face.castShadow = true;
+    headGroup.add(face);
+
+    const beanie = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.28), hoodMat);
+    beanie.position.y = 0.08;
+    beanie.castShadow = true;
+    headGroup.add(beanie);
+
+    const scarf = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.12), trimMat);
+    scarf.position.set(0, -0.08, 0.12);
+    headGroup.add(scarf);
+
+    characterGroup.add(headGroup);
+
+    // 5. Left Leg (Hip pivot)
+    const leftLegGroup = new THREE.Group();
+    leftLegGroup.position.set(-0.14, 0.85, 0);
+
+    const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.2), pantsMat);
+    leftLeg.position.y = -0.32;
+    leftLeg.castShadow = true;
+    leftLeg.receiveShadow = true;
+    leftLegGroup.add(leftLeg);
+
+    const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.32), bootsMat);
+    leftBoot.position.set(0, -0.68, 0.05);
+    leftBoot.castShadow = true;
+    leftBoot.receiveShadow = true;
+    leftLegGroup.add(leftBoot);
+
+    characterGroup.add(leftLegGroup);
+
+    // 6. Right Leg (Hip pivot)
+    const rightLegGroup = new THREE.Group();
+    rightLegGroup.position.set(0.14, 0.85, 0);
+
+    const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.2), pantsMat);
+    rightLeg.position.y = -0.32;
+    rightLeg.castShadow = true;
+    rightLeg.receiveShadow = true;
+    rightLegGroup.add(rightLeg);
+
+    const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.32), bootsMat);
+    rightBoot.position.set(0, -0.68, 0.05);
+    rightBoot.castShadow = true;
+    rightBoot.receiveShadow = true;
+    rightLegGroup.add(rightBoot);
+
+    characterGroup.add(rightLegGroup);
+
+    // 7. Left Arm (Shoulder pivot)
+    const leftArmGroup = new THREE.Group();
+    leftArmGroup.position.set(-0.33, 1.48, 0);
+
+    const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), parkaMat);
+    leftArm.position.y = -0.26;
+    leftArm.castShadow = true;
+    leftArmGroup.add(leftArm);
+
+    const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.14), gloveMat);
+    leftGlove.position.y = -0.56;
+    leftGlove.castShadow = true;
+    leftArmGroup.add(leftGlove);
+
+    characterGroup.add(leftArmGroup);
+
+    // 8. Right Arm (Shoulder pivot)
+    const rightArmGroup = new THREE.Group();
+    rightArmGroup.position.set(0.33, 1.48, 0);
+
+    const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), parkaMat);
+    rightArm.position.y = -0.26;
+    rightArm.castShadow = true;
+    rightArmGroup.add(rightArm);
+
+    const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.14), gloveMat);
+    rightGlove.position.y = -0.56;
+    rightGlove.castShadow = true;
+    rightArmGroup.add(rightGlove);
+
+    characterGroup.add(rightArmGroup);
+
+    // Animation controller on userData
+    characterGroup.userData = {
+      walkPhase: 0,
+      idlePhase: 0,
+      leftLeg: leftLegGroup,
+      rightLeg: rightLegGroup,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      torso,
+      head: headGroup,
+      animate(speed, dt, isMoving) {
+        if (isMoving) {
+          const strideFreq = speed > 5 ? 13 : 9;
+          this.walkPhase += dt * strideFreq;
+
+          const legAngle = Math.sin(this.walkPhase) * (speed > 5 ? 0.65 : 0.45);
+          leftLegGroup.rotation.x = legAngle;
+          rightLegGroup.rotation.x = -legAngle;
+
+          // Arms swing counter to legs
+          leftArmGroup.rotation.x = -legAngle * 0.75;
+          rightArmGroup.rotation.x = legAngle * 0.75;
+
+          // Subtle torso twist and head compensation
+          torso.rotation.y = Math.sin(this.walkPhase * 0.5) * 0.08;
+          headGroup.rotation.y = -torso.rotation.y * 0.5;
+        } else {
+          // Smooth return to idle rest pose
+          leftLegGroup.rotation.x *= 0.82;
+          rightLegGroup.rotation.x *= 0.82;
+          leftArmGroup.rotation.x *= 0.82;
+          rightArmGroup.rotation.x *= 0.82;
+          torso.rotation.y *= 0.82;
+          headGroup.rotation.y *= 0.82;
+
+          // Subtle breathing cycle
+          this.idlePhase += dt * 2.2;
+          torso.scale.y = 1.0 + Math.sin(this.idlePhase) * 0.015;
+        }
+      },
+    };
+
+    return characterGroup;
+  },
+
+  /**
+   * Procedural Engine Turbine (standalone model for grid map)
+   */
+  createEngineTurbine() {
+    const group = new THREE.Group();
+    const turbineGeo = new THREE.CylinderGeometry(0.75, 0.85, 2.0, 10);
+    const turbine = new THREE.Mesh(turbineGeo, metalDarkMaterial);
+    turbine.rotation.set(1.4, 0.2, 0.8);
+    turbine.position.y = 0.6;
+    turbine.castShadow = true;
+    turbine.receiveShadow = true;
+    group.add(turbine);
     return group;
+  },
+
+  /**
+   * Procedural Emergency Beacon (transponder mast + base)
+   */
+  createEmergencyBeacon() {
+    const beaconGroup = new THREE.Group();
+
+    // Metal tripod base
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x33363d, roughness: 0.6, metalness: 0.7, flatShading: true });
+    const tripod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.55, 0.6, 6), baseMat);
+    tripod.position.y = 0.3;
+    tripod.castShadow = true;
+    beaconGroup.add(tripod);
+
+    // International Orange transponder chassis
+    const chassisMat = new THREE.MeshStandardMaterial({
+      color: 0xd96b32,
+      roughness: 0.4,
+      metalness: 0.3,
+      flatShading: true,
+    });
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 0.45), chassisMat);
+    chassis.position.y = 0.85;
+    chassis.castShadow = true;
+    beaconGroup.add(chassis);
+
+    // Antenna mast
+    const mastMat = new THREE.MeshStandardMaterial({ color: 0xb8b4a8, metalness: 0.9, roughness: 0.2 });
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 1.4, 8), mastMat);
+    mast.position.set(0, 1.7, 0);
+    beaconGroup.add(mast);
+
+    // Tip indicator bulb
+    const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffaa22 });
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), bulbMat);
+    bulb.position.set(0, 2.4, 0);
+    beaconGroup.add(bulb);
+
+    const beaconLight = new THREE.PointLight(0xffaa22, 1.4, 8, 1.8);
+    beaconLight.position.set(0, 2.4, 0);
+    beaconGroup.add(beaconLight);
+
+    beaconGroup.userData.beaconLight = beaconLight;
+    beaconGroup.userData.bulb = bulb;
+
+    return beaconGroup;
+  },
+
+  /**
+   * Procedural First Aid Kit
+   */
+  createFirstAidKit() {
+    const medKitGroup = new THREE.Group();
+    const medBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.24, 0.4),
+      new THREE.MeshStandardMaterial({ color: 0xe7e1d3, roughness: 0.4, flatShading: true })
+    );
+    medBox.position.y = 0.12;
+    medBox.castShadow = true;
+    medKitGroup.add(medBox);
+
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.01, 0.08), new THREE.MeshBasicMaterial({ color: 0xa83e32 }));
+    crossH.position.y = 0.245;
+    medKitGroup.add(crossH);
+
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.01, 0.24), new THREE.MeshBasicMaterial({ color: 0xa83e32 }));
+    crossV.position.y = 0.245;
+    medKitGroup.add(crossV);
+
+    return medKitGroup;
+  },
+
+  /**
+   * Procedural Flight Documents (Clipboard & manifest paper)
+   */
+  createFlightDocuments() {
+    const docGroup = new THREE.Group();
+    const board = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.04, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8, flatShading: true })
+    );
+    board.position.y = 0.02;
+    board.castShadow = true;
+    docGroup.add(board);
+
+    const paper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.38, 0.01, 0.52),
+      new THREE.MeshStandardMaterial({ color: 0xe7e1d3, roughness: 0.9 })
+    );
+    paper.position.y = 0.045;
+    docGroup.add(paper);
+
+    return docGroup;
+  },
+
+  /**
+   * Procedural Impact Furrow (scorched trench in snow)
+   */
+  createImpactFurrow() {
+    const furrowGeo = new THREE.PlaneGeometry(6, 18, 6, 12);
+    furrowGeo.rotateX(-Math.PI / 2);
+    const furrowMat = new THREE.MeshStandardMaterial({
+      color: 0x221a14,
+      roughness: 0.95,
+      metalness: 0.05,
+    });
+    const furrow = new THREE.Mesh(furrowGeo, furrowMat);
+    furrow.position.y = 0.02;
+    furrow.receiveShadow = true;
+    return furrow;
   },
 };

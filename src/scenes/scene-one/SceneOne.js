@@ -5,6 +5,9 @@ import { ProceduralModels } from '../../world/ProceduralModels.js';
 import { MovementSystem } from '../../systems/MovementSystem.js';
 import { CollisionSystem } from '../../systems/CollisionSystem.js';
 import { RenderSystem } from '../../systems/RenderSystem.js';
+import { MapLoader } from '../../world/MapLoader.js';
+import { CharacterLoader } from '../../world/CharacterLoader.js';
+import sceneOneMap from '../../data/maps/sceneOneMap.json';
 
 /**
  * ACT I — SCENE 1: THE CRASH
@@ -13,329 +16,181 @@ import { RenderSystem } from '../../systems/RenderSystem.js';
  * The player wakes up in the sub-zero snow after Flight 402 impacts the wilderness.
  * Smoke billows from the torn fuselage, glowing engine embers crackle, and debris is strewn across the trench.
  *
- * Key Elements:
- * - Damaged aircraft fuselage, severed wing, smoldering jet turbine
- * - Procedural rising smoke plumes and wind-blown sparks
- * - Basic exploration & interactable emergency supplies (First Aid Kit, Rations, Flight Manifest)
- * - Emergency Beacon: The central objective — inspecting it reveals a depleted battery requiring thermal/external power.
+ * Architecture & Features:
+ * - Map loaded from JSON grid representation (sceneOneMap.json) with legend and model registry.
+ * - Humanoid player character created from composite shapes with natural articulation.
+ * - Dual camera support: First-Person View (FPV) and elevated Bird's-Eye View [V].
+ * - Smoothed proximity & forward-cone interaction system with ground highlight reticle.
+ * - Optimized math calculations with zero per-frame garbage collection allocations.
  */
 export class SceneOne extends Scene {
   constructor(game) {
     super(game, 'scene-one');
     this.playerId = null;
+    this.characterMesh = null;
+    this.renderSystem = null;
     this.time = 0;
-
-    // Raycast Interaction
-    this.raycaster = new THREE.Raycaster();
-    this.raycaster.far = 3.6;
-    this.centerScreen = new THREE.Vector2(0, 0);
 
     // Procedural Particles (Smoke & Sparks)
     this.smokeParticles = [];
     this.sparkParticles = [];
+    this.turbinePos = new THREE.Vector3(-3.2, 0.6, -4.2);
 
-    // Turbine Fire Light
+    // Lights
     this.engineLight = null;
-
-    // Beacon Light & Status
     this.beaconLight = null;
     this.beaconGroup = null;
     this.beaconInspected = false;
+
+    // Ground interaction reticle
+    this.highlightRing = null;
+
+    // Preallocated math scratch vectors for zero-allocation interaction checks
+    this._playerPos = new THREE.Vector3();
+    this._itemPos = new THREE.Vector3();
+    this._forward = new THREE.Vector3();
+    this._toItem = new THREE.Vector3();
   }
 
-  enter() {
+  async enter() {
     super.enter();
 
-    // 1. Atmosphere & Fog (Smoldering crash haze in alpine dusk)
-    this.threeScene.background = new THREE.Color(0x18171c);
-    this.threeScene.fog = new THREE.Fog(0x18171c, 20, 80);
+    // 1. Atmosphere & Fog (Clearer alpine dusk with extended visibility)
+    this.threeScene.background = new THREE.Color(0x232832);
+    this.threeScene.fog = new THREE.Fog(0x232832, 38, 125);
 
-    // 2. Lighting (Overcast cold moonlight + fiery wreckage glow)
-    const ambientLight = new THREE.AmbientLight(0x404452, 0.6);
+    // 2. Lighting (Enhanced ambient illumination & directional key/fill lights)
+    const ambientLight = new THREE.AmbientLight(0x9cb0c6, 1.45);
     this.threeScene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0x565e72, 0x241d18, 0.45);
+    const hemiLight = new THREE.HemisphereLight(0xbcd0e8, 0x6e7e72, 1.25);
     this.threeScene.add(hemiLight);
 
-    const moonLight = new THREE.DirectionalLight(0x8fa4c2, 0.75);
-    moonLight.position.set(-18, 28, 16);
+    // Key directional moonlight
+    const moonLight = new THREE.DirectionalLight(0xd6e5f8, 1.4);
+    moonLight.position.set(-18, 30, 16);
     moonLight.castShadow = true;
     moonLight.shadow.mapSize.width = 1024;
     moonLight.shadow.mapSize.height = 1024;
     moonLight.shadow.bias = -0.0005;
     this.threeScene.add(moonLight);
 
+    // Soft rim & fill directional light from opposite angle to eliminate harsh shadows
+    const fillLight = new THREE.DirectionalLight(0x8fa3b8, 0.85);
+    fillLight.position.set(20, 24, -18);
+    this.threeScene.add(fillLight);
+
+    // 3. Load Environment & Grid Map from JSON Asset
+    const mapLoader = new MapLoader();
+    const mapResult = mapLoader.load(sceneOneMap, this.ecsWorld, this.threeScene);
+
+    // 4. Retrieve key objects from map
+    const turbineEntity = mapResult.specialEntities.get('engine_turbine');
+    if (turbineEntity && turbineEntity.mesh) {
+      this.turbinePos.copy(turbineEntity.mesh.position);
+      this.turbinePos.y += 0.6;
+    }
+
+    const beaconData = mapResult.specialEntities.get('emergency_beacon');
+    if (beaconData && beaconData.mesh) {
+      this.beaconGroup = beaconData.mesh;
+      this.beaconLight = beaconData.mesh.userData.beaconLight;
+    }
+
     // Turbine combustion fire light
     this.engineLight = new THREE.PointLight(0xff5511, 4.5, 26, 1.4);
-    this.engineLight.position.set(-3.2, 1.2, -4.2);
+    this.engineLight.position.set(this.turbinePos.x, this.turbinePos.y + 0.6, this.turbinePos.z);
     this.engineLight.castShadow = true;
     this.threeScene.add(this.engineLight);
 
-    // 3. Terrain & Crash Trench
-    this.buildCrashEnvironment();
+    // 5. Procedural Smoke & Spark Particles
+    this.createSmokeAndSparks(this.turbinePos.x, this.turbinePos.y + 0.6, this.turbinePos.z);
 
-    // 4. Procedural Aircraft Wreckage
-    this.buildAircraftWreckage();
+    // 6. Ground Highlight Reticle for Smoothed Interactions
+    const ringGeo = new THREE.RingGeometry(0.55, 0.7, 24);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffaa22,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    this.highlightRing = new THREE.Mesh(ringGeo, ringMat);
+    this.highlightRing.position.y = 0.05;
+    this.threeScene.add(this.highlightRing);
 
-    // 5. Emergency Beacon (Primary Objective)
-    this.buildEmergencyBeacon();
+    // Dedicated character visibility fill lights (moves directly with the humanoid)
+    const characterFrontLight = new THREE.PointLight(0xfff7ea, 1.4, 8.5, 1.2);
+    characterFrontLight.position.set(0, 1.8, 0.7);
 
-    // 6. Interactive Emergency Supplies
-    this.spawnEmergencySupplies();
+    const characterBackLight = new THREE.PointLight(0xdbe7f5, 1.0, 7.0, 1.4);
+    characterBackLight.position.set(0, 1.6, -0.7);
 
-    // 7. Procedural Smoke & Spark Particles
-    this.createSmokeAndSparks();
+    // Preload animated GLB character model BEFORE starting scene to prevent composite character pop-in
+    const characterLoader = new CharacterLoader();
+    let charData = null;
+    try {
+      charData = await characterLoader.load('/models/character.glb', (percent) => {
+        if (this.game && typeof this.game.updateLoadingProgress === 'function') {
+          this.game.updateLoadingProgress(percent);
+        }
+      });
+    } catch (err) {
+      console.warn('[SceneOne] Fallback to procedural character:', err);
+    }
 
-    // 8. Player Entity (Waking up at the edge of the impact trench)
+    // 7. Player Entity & Animated GLB Character
     const player = this.ecsWorld.createEntity();
     this.playerId = player;
-    // Player starts standing near the cockpit opening facing the wreckage
-    this.ecsWorld.addComponent(player, 'Transform', Components.Transform(0, 0, 8));
+
+    const spawn = mapResult.playerSpawn || { x: 0, y: 0, z: 8 };
+    const transform = Components.Transform(spawn.x, 0, spawn.z);
+    transform.facingAngle = Math.PI; // Face north toward burning wreckage (away from camera)
+    this.ecsWorld.addComponent(player, 'Transform', transform);
     this.ecsWorld.addComponent(player, 'Velocity', Components.Velocity());
+
     const pInput = this.ecsWorld.addComponent(player, 'PlayerInput', Components.PlayerInput());
-    pInput.cameraYaw = Math.PI; // Face north toward burning wreckage
+    pInput.cameraYaw = 0; // Camera behind player looking North
+
     this.ecsWorld.addComponent(player, 'Collider', Components.Collider(0.45, 1.8, false));
 
-    const playerChestLight = new THREE.PointLight(0xeef2f7, 0.6, 12, 1.6);
+    if (charData) {
+      this.characterMesh = charData.model;
+      this.characterMesh.userData = {
+        animate: (speed, dt, isMoving, isSprinting) => {
+          charData.update(speed, dt, isMoving, isSprinting);
+        },
+      };
+    } else {
+      this.characterMesh = ProceduralModels.createHumanoidCharacter();
+    }
+
+    this.characterMesh.add(characterFrontLight);
+    this.characterMesh.add(characterBackLight);
+    this.threeScene.add(this.characterMesh);
+    this.ecsWorld.addComponent(player, 'MeshComponent', Components.MeshComponent(this.characterMesh));
+
+    // Player chest light on camera (for first-person view)
+    const playerChestLight = new THREE.PointLight(0xeef2f7, 0.8, 14, 1.4);
     this.camera.add(playerChestLight);
     this.threeScene.add(this.camera);
 
-    // 9. Systems
+    // 8. Systems
     this.ecsWorld.addSystem(new MovementSystem(this.game.audio));
     this.ecsWorld.addSystem(new CollisionSystem(36));
-    this.ecsWorld.addSystem(new RenderSystem(this.game.renderer, this.threeScene, this.camera));
+
+    this.renderSystem = new RenderSystem(this.game.renderer, this.threeScene, this.camera);
+    // Start in Bird's-Eye View so user immediately sees their humanoid character!
+    this.renderSystem.setCameraMode('birds-eye');
+    this.ecsWorld.addSystem(this.renderSystem);
 
     if (this.game.ui) {
-      this.game.ui.showToast('Scene 1: The Crash');
+      this.game.ui.showToast("Act I: The Crash (Press 'V' or click BIRD VIEW to toggle camera)");
     }
   }
 
-  // =========================================================================
-  // ENVIRONMENT & WRECKAGE MODELING
-  // =========================================================================
-
-  buildCrashEnvironment() {
-    // Frosted snow terrain clearing
-    const ground = ProceduralModels.createClearingGround(44);
-    this.threeScene.add(ground);
-
-    // Impact Trench (plowed earth furrow)
-    const furrowGeo = new THREE.PlaneGeometry(8, 26, 8, 16);
-    furrowGeo.rotateX(-Math.PI / 2);
-    const furrowMat = new THREE.MeshStandardMaterial({
-      color: 0x221a14, // Burnt scorched soil
-      roughness: 0.95,
-      metalness: 0.05,
-    });
-    const furrow = new THREE.Mesh(furrowGeo, furrowMat);
-    furrow.position.set(-1.5, 0.02, 2);
-    furrow.rotation.y = -0.15;
-    furrow.receiveShadow = true;
-    this.threeScene.add(furrow);
-
-    // Boundary forest (tall pine trees & craggy rocks)
-    const treeCount = 48;
-    for (let i = 0; i < treeCount; i++) {
-      const angle = (i / treeCount) * Math.PI * 2;
-      const dist = 22 + Math.random() * 14;
-      const x = Math.cos(angle) * dist;
-      const z = Math.sin(angle) * dist;
-      const scale = 0.9 + Math.random() * 0.5;
-
-      const treeMesh = ProceduralModels.createTree(scale);
-      treeMesh.position.set(x, 0, z);
-      this.threeScene.add(treeMesh);
-
-      const treeEnt = this.ecsWorld.createEntity();
-      this.ecsWorld.addComponent(treeEnt, 'Transform', Components.Transform(x, 0, z));
-      this.ecsWorld.addComponent(treeEnt, 'Collider', Components.Collider(0.6 * scale, 3.5, true));
-      this.ecsWorld.addComponent(treeEnt, 'MeshComponent', Components.MeshComponent(treeMesh));
-    }
-
-    // Fractured crash rocks
-    for (let i = 0; i < 15; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 14 + Math.random() * 12;
-      const rock = ProceduralModels.createRock(0.8 + Math.random() * 0.7);
-      rock.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
-      this.threeScene.add(rock);
-    }
-  }
-
-  buildAircraftWreckage() {
-    // Master plane wreckage model (Fuselage, severed wing, and smoking jet engine)
-    const planeWreckage = ProceduralModels.createPlaneWreckage();
-    planeWreckage.position.set(-2.5, 0, -3.5);
-    this.threeScene.add(planeWreckage);
-
-    const wreckageEnt = this.ecsWorld.createEntity();
-    this.ecsWorld.addComponent(wreckageEnt, 'Transform', Components.Transform(-2.5, 0, -3.5));
-    this.ecsWorld.addComponent(wreckageEnt, 'Collider', Components.Collider(3.8, 3.5, true));
-    this.ecsWorld.addComponent(wreckageEnt, 'MeshComponent', Components.MeshComponent(planeWreckage));
-
-    // Additional scattered debris: sheared metal panels and luggage
-    const debrisGroup = new THREE.Group();
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x828892, roughness: 0.35, metalness: 0.8 });
-    const luggageMat = new THREE.MeshStandardMaterial({ color: 0x5a2d28, roughness: 0.7 });
-
-    // Twisted hull panel
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 1.4), metalMat);
-    panel.position.set(3.8, 0.2, 3.5);
-    panel.rotation.set(0.2, 0.6, -0.1);
-    panel.castShadow = true;
-    debrisGroup.add(panel);
-
-    // Scattered suitcase
-    const suitcase = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.5), luggageMat);
-    suitcase.position.set(2.2, 0.12, 5.0);
-    suitcase.rotation.y = 0.4;
-    suitcase.castShadow = true;
-    debrisGroup.add(suitcase);
-
-    this.threeScene.add(debrisGroup);
-  }
-
-  // =========================================================================
-  // EMERGENCY BEACON (CENTRAL OBJECTIVE)
-  // =========================================================================
-
-  buildEmergencyBeacon() {
-    this.beaconGroup = new THREE.Group();
-    this.beaconGroup.position.set(4.5, 0, -1.5);
-
-    // Metal mounting tripod / base
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x33363d, roughness: 0.6, metalness: 0.7 });
-    const tripod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.55, 0.6, 6), baseMat);
-    tripod.position.y = 0.3;
-    tripod.castShadow = true;
-    this.beaconGroup.add(tripod);
-
-    // High-visibility aviation emergency transponder chassis (International Orange)
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0xd96b32, // International safety orange
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-    const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 0.45), chassisMat);
-    chassis.position.y = 0.85;
-    chassis.castShadow = true;
-    this.beaconGroup.add(chassis);
-
-    // Antenna mast
-    const mastMat = new THREE.MeshStandardMaterial({ color: 0xb8b4a8, metalness: 0.9, roughness: 0.2 });
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 1.4, 8), mastMat);
-    mast.position.set(0, 1.7, 0);
-    this.beaconGroup.add(mast);
-
-    // Pulsing amber indicator LED at mast tip
-    const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffaa22 });
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), bulbMat);
-    bulb.position.set(0, 2.4, 0);
-    this.beaconGroup.add(bulb);
-
-    this.beaconLight = new THREE.PointLight(0xffaa22, 1.2, 7, 1.8);
-    this.beaconLight.position.set(0, 2.4, 0);
-    this.beaconGroup.add(this.beaconLight);
-
-    this.threeScene.add(this.beaconGroup);
-
-    // ECS Entity for Beacon
-    const beaconEnt = this.ecsWorld.createEntity();
-    this.ecsWorld.addComponent(beaconEnt, 'Transform', Components.Transform(4.5, 0, -1.5));
-    this.ecsWorld.addComponent(
-      beaconEnt,
-      'Interactable',
-      Components.Interactable('Inspect Emergency Beacon', 'inspect_beacon', 3.2)
-    );
-    this.ecsWorld.addComponent(beaconEnt, 'Collider', Components.Collider(0.7, 2.4, true));
-    this.ecsWorld.addComponent(beaconEnt, 'MeshComponent', Components.MeshComponent(this.beaconGroup));
-  }
-
-  // =========================================================================
-  // EMERGENCY SUPPLIES & DISCOVERIES
-  // =========================================================================
-
-  spawnEmergencySupplies() {
-    // 1. First Aid Kit near cockpit
-    const medKitGroup = new THREE.Group();
-    medKitGroup.position.set(-4.8, 0.12, 1.2);
-    medKitGroup.rotation.y = 0.3;
-
-    const medBox = new THREE.Mesh(
-      new THREE.BoxGeometry(0.55, 0.24, 0.4),
-      new THREE.MeshStandardMaterial({ color: 0xe7e1d3, roughness: 0.4 })
-    );
-    medBox.castShadow = true;
-    medKitGroup.add(medBox);
-
-    // Red cross decal on lid
-    const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.01, 0.08), new THREE.MeshBasicMaterial({ color: 0xa83e32 }));
-    crossH.position.y = 0.125;
-    medKitGroup.add(crossH);
-    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.01, 0.24), new THREE.MeshBasicMaterial({ color: 0xa83e32 }));
-    crossV.position.y = 0.125;
-    medKitGroup.add(crossV);
-
-    this.threeScene.add(medKitGroup);
-
-    const medEnt = this.ecsWorld.createEntity();
-    this.ecsWorld.addComponent(medEnt, 'Transform', Components.Transform(-4.8, 0.12, 1.2));
-    this.ecsWorld.addComponent(
-      medEnt,
-      'Interactable',
-      Components.Interactable('Salvage First Aid Kit', 'salvage_medkit', 2.8)
-    );
-    this.ecsWorld.addComponent(medEnt, 'MeshComponent', Components.MeshComponent(medKitGroup));
-
-    // 2. Emergency Ration Crate in cargo debris
-    const rationCrate = ProceduralModels.createRationBox();
-    rationCrate.position.set(-1.0, 0, -6.5);
-    rationCrate.rotation.y = -0.4;
-    this.threeScene.add(rationCrate);
-
-    const rationEnt = this.ecsWorld.createEntity();
-    this.ecsWorld.addComponent(rationEnt, 'Transform', Components.Transform(-1.0, 0, -6.5));
-    this.ecsWorld.addComponent(
-      rationEnt,
-      'Interactable',
-      Components.Interactable('Salvage Emergency Rations', 'salvage_rations', 2.8)
-    );
-    this.ecsWorld.addComponent(rationEnt, 'Collider', Components.Collider(0.6, 0.6, true));
-    this.ecsWorld.addComponent(rationEnt, 'MeshComponent', Components.MeshComponent(rationCrate));
-
-    // 3. Flight Manifest Clipboard on cargo wreckage
-    const docGroup = new THREE.Group();
-    docGroup.position.set(1.5, 0.25, 3.2);
-    docGroup.rotation.set(-0.2, 0.4, 0.1);
-
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(0.45, 0.04, 0.6),
-      new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 })
-    );
-    docGroup.add(board);
-    const paper = new THREE.Mesh(
-      new THREE.BoxGeometry(0.38, 0.01, 0.52),
-      new THREE.MeshStandardMaterial({ color: 0xe7e1d3, roughness: 0.9 })
-    );
-    paper.position.y = 0.025;
-    docGroup.add(paper);
-    this.threeScene.add(docGroup);
-
-    const docEnt = this.ecsWorld.createEntity();
-    this.ecsWorld.addComponent(docEnt, 'Transform', Components.Transform(1.5, 0.25, 3.2));
-    this.ecsWorld.addComponent(
-      docEnt,
-      'Interactable',
-      Components.Interactable('Inspect Flight Documents', 'inspect_documents', 2.8)
-    );
-    this.ecsWorld.addComponent(docEnt, 'MeshComponent', Components.MeshComponent(docGroup));
-  }
-
-  // =========================================================================
-  // PROCEDURAL SMOKE & SPARK PARTICLES
-  // =========================================================================
-
-  createSmokeAndSparks() {
+  createSmokeAndSparks(bx, by, bz) {
     // 1. Rising Smoke Puffs from turbine breach
     const smokeGeo = new THREE.DodecahedronGeometry(0.35, 1);
     const smokeMat = new THREE.MeshBasicMaterial({
@@ -348,17 +203,17 @@ export class SceneOne extends Scene {
     for (let i = 0; i < 20; i++) {
       const mesh = new THREE.Mesh(smokeGeo, smokeMat.clone());
       mesh.position.set(
-        -3.2 + (Math.random() - 0.5) * 0.6,
-        1.2 + Math.random() * 3.5,
-        -4.2 + (Math.random() - 0.5) * 0.6
+        bx + (Math.random() - 0.5) * 0.6,
+        by + Math.random() * 3.5,
+        bz + (Math.random() - 0.5) * 0.6
       );
       this.threeScene.add(mesh);
 
       this.smokeParticles.push({
         mesh,
-        baseX: -3.2,
-        baseZ: -4.2,
-        baseY: 1.2,
+        baseX: bx,
+        baseZ: bz,
+        baseY: by,
         speed: 0.6 + Math.random() * 0.5,
         life: Math.random() * 4.0,
         maxLife: 4.0,
@@ -372,14 +227,14 @@ export class SceneOne extends Scene {
 
     for (let i = 0; i < 14; i++) {
       const mesh = new THREE.Mesh(sparkGeo, sparkMat);
-      mesh.position.set(-3.2, 1.2, -4.2);
+      mesh.position.set(bx, by, bz);
       this.threeScene.add(mesh);
 
       this.sparkParticles.push({
         mesh,
-        x: -3.2,
-        y: 1.2,
-        z: -4.2,
+        x: bx,
+        y: by,
+        z: bz,
         vx: (Math.random() - 0.2) * 0.8,
         vy: 0.8 + Math.random() * 1.2,
         vz: 0.4 + Math.random() * 0.8,
@@ -388,10 +243,6 @@ export class SceneOne extends Scene {
       });
     }
   }
-
-  // =========================================================================
-  // MAIN UPDATE LOOP
-  // =========================================================================
 
   update(deltaTime) {
     if (!this.active) return;
@@ -406,7 +257,6 @@ export class SceneOne extends Scene {
 
     // 2. Emergency Beacon Slow Amber Blink
     if (this.beaconLight) {
-      // Dull dying pulse every 1.6s
       const pulse = Math.sin(this.time * 3.9);
       const isLit = pulse > 0.4;
       this.beaconLight.intensity = isLit ? 1.6 : 0.2;
@@ -433,9 +283,9 @@ export class SceneOne extends Scene {
       s.life += deltaTime;
       if (s.life > s.maxLife) {
         s.life = 0;
-        s.x = -3.2 + (Math.random() - 0.5) * 0.3;
-        s.y = 1.2;
-        s.z = -4.2 + (Math.random() - 0.5) * 0.3;
+        s.x = this.turbinePos.x + (Math.random() - 0.5) * 0.3;
+        s.y = this.turbinePos.y;
+        s.z = this.turbinePos.z + (Math.random() - 0.5) * 0.3;
         s.vy = 0.8 + Math.random() * 1.2;
       }
       s.x += s.vx * deltaTime;
@@ -456,49 +306,83 @@ export class SceneOne extends Scene {
     super.update(deltaTime);
   }
 
+  /**
+   * Smoothed Proximity & Forward-Cone Interaction System.
+   * Seamless in both First-Person and Bird's-Eye View.
+   * Provides immediate visual target feedback and zero-flicker triggering.
+   */
   handleInteractions(playerInput) {
     if (!playerInput || !this.game.ui) return;
 
-    this.raycaster.setFromCamera(this.centerScreen, this.camera);
-    const interactables = this.ecsWorld.query('Interactable', 'MeshComponent', 'Transform');
+    const transform = this.ecsWorld.getComponent(this.playerId, 'Transform');
+    if (!transform) return;
 
-    let closest = null;
-    let closestDist = Infinity;
+    this._playerPos.copy(transform.position);
+
+    // Player forward direction in XZ plane
+    this._forward.set(-Math.sin(playerInput.cameraYaw), 0, -Math.cos(playerInput.cameraYaw)).normalize();
+
+    const interactables = this.ecsWorld.query('Interactable', 'Transform');
+
+    let bestCandidate = null;
+    let bestScore = Infinity;
 
     for (const id of interactables) {
-      const meshComp = this.ecsWorld.getComponent(id, 'MeshComponent');
+      const itemTransform = this.ecsWorld.getComponent(id, 'Transform');
       const interactable = this.ecsWorld.getComponent(id, 'Interactable');
-      if (meshComp && meshComp.mesh) {
-        const intersects = this.raycaster.intersectObject(meshComp.mesh, true);
-        if (intersects.length > 0 && intersects[0].distance < closestDist && intersects[0].distance <= interactable.maxDistance) {
-          closestDist = intersects[0].distance;
-          closest = { id, interactable };
+
+      if (!itemTransform || !interactable) continue;
+
+      this._itemPos.copy(itemTransform.position);
+      this._toItem.subVectors(this._itemPos, this._playerPos);
+      this._toItem.y = 0; // Flat ground distance
+
+      const dist = this._toItem.length();
+      if (dist > interactable.maxDistance) continue;
+
+      let score = dist;
+
+      if (dist > 0.01) {
+        this._toItem.normalize();
+        const dot = this._forward.dot(this._toItem);
+
+        // Accept if within close proximity (< 1.6m) OR facing within ~70° cone (dot > 0.28)
+        if (dist < 1.6 || dot > 0.28) {
+          // Weight towards objects the player is directly facing
+          score = dist - dot * 1.2;
+          if (score < bestScore) {
+            bestScore = score;
+            bestCandidate = { id, interactable, position: itemTransform.position };
+          }
         }
       }
     }
 
-    if (closest) {
-      const { id, interactable } = closest;
+    if (bestCandidate) {
+      const { id, interactable, position } = bestCandidate;
 
-      if (interactable.actionType === 'inspect_beacon') {
-        this.game.ui.setPrompt('Inspect emergency beacon');
-        if (playerInput.interact) {
+      // Position visual highlight reticle beneath candidate
+      if (this.highlightRing) {
+        this.highlightRing.position.set(position.x, 0.05, position.z);
+        const pulse = 0.65 + Math.sin(this.time * 6.0) * 0.25;
+        this.highlightRing.material.opacity = pulse;
+      }
+
+      // Display interaction prompt
+      this.game.ui.setPrompt(interactable.prompt);
+
+      // Trigger interaction action when key/touch is pressed
+      if (playerInput.interact) {
+        if (interactable.actionType === 'inspect_beacon') {
           if (this.game.audio && typeof this.game.audio.playBeaconBeep === 'function') {
             this.game.audio.playBeaconBeep();
           }
 
           this.beaconInspected = true;
           this.game.gameState.setStory('beaconDiscovered', true);
-
-          // Provide diagnostic story reveal
           this.game.ui.showToast('Beacon status: Main battery dead. Power required to transmit.');
-
-          // Update prompt text to reflect discovery
           interactable.prompt = 'Emergency Beacon (Power Required: Build Campfire)';
-        }
-      } else if (interactable.actionType === 'salvage_medkit') {
-        this.game.ui.setPrompt('Salvage first aid kit');
-        if (playerInput.interact) {
+        } else if (interactable.actionType === 'salvage_medkit') {
           this.game.gameState.heal(40);
           if (this.game.audio) this.game.audio.playPickup();
           this.game.ui.showToast('First aid kit used (Health restored)');
@@ -509,12 +393,10 @@ export class SceneOne extends Scene {
           }
           this.ecsWorld.destroyEntity(id);
           this.game.ui.setPrompt(null);
-        }
-      } else if (interactable.actionType === 'salvage_rations') {
-        const inv = this.game.gameState.inventory;
-        if (inv.food < inv.maxFood) {
-          this.game.ui.setPrompt('Salvage emergency rations');
-          if (playerInput.interact) {
+          if (this.highlightRing) this.highlightRing.material.opacity = 0;
+        } else if (interactable.actionType === 'salvage_rations') {
+          const inv = this.game.gameState.inventory;
+          if (inv.food < inv.maxFood) {
             this.game.gameState.addFood(2);
             if (this.game.audio) this.game.audio.playPickup();
             this.game.ui.showToast(`Emergency rations salvaged (${this.game.gameState.inventory.food}/${inv.maxFood})`);
@@ -525,19 +407,20 @@ export class SceneOne extends Scene {
             }
             this.ecsWorld.destroyEntity(id);
             this.game.ui.setPrompt(null);
+            if (this.highlightRing) this.highlightRing.material.opacity = 0;
+          } else {
+            this.game.ui.showToast('Food pouch full (5/5)');
           }
-        } else {
-          this.game.ui.setPrompt('Food pouch full (5/5)');
-        }
-      } else if (interactable.actionType === 'inspect_documents') {
-        this.game.ui.setPrompt('Inspect flight documents');
-        if (playerInput.interact) {
+        } else if (interactable.actionType === 'inspect_documents') {
           if (this.game.audio) this.game.audio.playPickup();
           this.game.gameState.setStory('manifestFound', true);
           this.game.ui.showToast('Flight 402: 12 souls aboard. Telemetry cut at 02:14.');
         }
       }
     } else {
+      if (this.highlightRing) {
+        this.highlightRing.material.opacity = 0;
+      }
       this.game.ui.setPrompt(null);
     }
   }
@@ -555,6 +438,9 @@ export class SceneOne extends Scene {
     this.engineLight = null;
     this.beaconLight = null;
     this.beaconGroup = null;
+    this.highlightRing = null;
+    this.characterMesh = null;
+    this.renderSystem = null;
 
     super.dispose();
   }

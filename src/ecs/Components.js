@@ -25,10 +25,15 @@ export const Components = {
     right: false,
     sprint: false,
     interact: false,
+    eat: false,
+    toggleView: false,
     mouseDeltaX: 0,
     mouseDeltaY: 0,
     cameraPitch: 0,
+    orbitPitch: 0.68,
     cameraYaw: 0,
+    cameraRoll: 0,
+    zoomDelta: 0,
   }),
 
   Collider: (radius = 0.5, height = 1.8, isStatic = true) => ({

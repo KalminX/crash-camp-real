@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crash Camp — Character Test</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/node_modules/three/build/three.module.js"
+    }
+  }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      font-family: system-ui, sans-serif;
+      color: white;
+    }
+
+    #info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    #buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="info">
+  <strong>Crash Camp Character Test</strong>
+  <div id="status">Loading...</div>
+  <div id="buttons"></div>
+</div>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from '/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x182018);
+
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    100
+  );
+
+  camera.position.set(0, 1.5, 5);
+  camera.lookAt(0, 1, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x333333, 2);
+  scene.add(hemi);
+
+  const light = new THREE.DirectionalLight(0xffffff, 3);
+  light.position.set(3, 5, 4);
+  scene.add(light);
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshStandardMaterial({ color: 0x333333 })
+  );
+
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+
+  const loader = new GLTFLoader();
+
+  let mixer = null;
+  let actions = {};
+  let activeAction = null;
+
+  const status = document.getElementById('status');
+  const buttons = document.getElementById('buttons');
+
+  loader.load(
+    '/models/character.glb',
+
+    (gltf) => {
+      console.log('GLB loaded:', gltf);
+      console.log('Character:', gltf.scene);
+      console.log('Animations:', gltf.animations);
+
+      const character = gltf.scene;
+
+      scene.add(character);
+
+      const box = new THREE.Box3().setFromObject(character);
+      const center = box.getCenter(new THREE.Vector3());
+
+      character.position.x -= center.x;
+      character.position.z -= center.z;
+
+      const size = box.getSize(new THREE.Vector3());
+
+      console.log('Character size:', size);
+
+      mixer = new THREE.AnimationMixer(character);
+
+      gltf.animations.forEach((clip) => {
+        console.log(
+          `Animation: ${clip.name}`,
+          `duration: ${clip.duration.toFixed(2)}s`,
+          `tracks: ${clip.tracks.length}`
+        );
+
+        actions[clip.name] = mixer.clipAction(clip);
+
+        const button = document.createElement('button');
+        button.textContent = clip.name;
+
+        button.addEventListener('click', () => {
+          playAnimation(clip.name);
+        });
+
+        buttons.appendChild(button);
+      });
+
+      status.textContent =
+        `Loaded — ${gltf.animations.length} animation(s)`;
+
+      if (actions.Idle) {
+        playAnimation('Idle');
+      }
+    },
+
+    (progress) => {
+      if (progress.total) {
+        const percent = Math.round(
+          (progress.loaded / progress.total) * 100
+        );
+
+        status.textContent = `Loading... ${percent}%`;
+      }
+    },
+
+    (error) => {
+      console.error('GLB LOAD ERROR:', error);
+      status.textContent = 'ERROR — check browser console';
+    }
+  );
+
+  function playAnimation(name) {
+    const nextAction = actions[name];
+
+    if (!nextAction) {
+      console.warn(`Animation not found: ${name}`);
+      return;
+    }
+
+    if (activeAction && activeAction !== nextAction) {
+      nextAction.reset();
+      nextAction.crossFadeFrom(activeAction, 0.25);
+    }
+
+    nextAction.play();
+    activeAction = nextAction;
+
+    status.textContent = `Playing: ${name}`;
+  }
+
+  const clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
+
+    if (mixer) {
+      mixer.update(delta);
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+  });
+</script>
+
+</body>
+</html>

@@ -22,7 +22,7 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.25;
+    this.renderer.toneMappingExposure = 1.40;
     this.container.appendChild(this.renderer.domElement);
 
     // 2. Core Systems
@@ -59,17 +59,76 @@ export class Game {
       }
     });
 
-    // Request pointer lock when canvas is clicked
+    // Initialize audio on first canvas interaction (without capturing mouse)
     this.renderer.domElement.addEventListener('click', () => {
       this.audio.init();
       this.audio.resume();
-      this.input.requestLock();
     });
+
+    // Listen for camera view toggle
+    this.input.onToggleView = () => {
+      this.toggleCameraMode();
+    };
   }
 
-  start() {
-    this.sceneManager.start();
+  toggleCameraMode() {
+    const scene = this.sceneManager.getCurrentScene();
+    if (scene && scene.renderSystem) {
+      const mode = scene.renderSystem.toggleCameraMode();
+      this.updateViewUI(mode);
+      if (this.ui) {
+        this.ui.showToast(mode === 'birds-eye' ? "Camera: Bird's-Eye View (Overhead)" : "Camera: First-Person View");
+      }
+      return mode;
+    }
+    return null;
+  }
+
+  updateViewUI(mode) {
+    const panelBtn = document.getElementById('panel-view-btn');
+    if (panelBtn) {
+      panelBtn.textContent = mode === 'birds-eye' ? 'BIRD VIEW' : 'FPV VIEW';
+      panelBtn.classList.toggle('active', mode === 'birds-eye');
+    }
+    const touchBtn = document.getElementById('touch-view-badge');
+    if (touchBtn) {
+      touchBtn.textContent = mode === 'birds-eye' ? 'VIEW: BIRD' : 'VIEW: FPV';
+      touchBtn.classList.toggle('active', mode === 'birds-eye');
+    }
+  }
+
+  updateLoadingProgress(percent) {
+    const bar = document.getElementById('loading-bar');
+    const status = document.getElementById('loading-status');
+    if (bar) {
+      bar.style.width = `${percent}%`;
+    }
+    if (status) {
+      status.textContent = `Loading survivor assets... ${percent}%`;
+    }
+  }
+
+  hideLoadingScreen() {
+    const screen = document.getElementById('loading-screen');
+    if (screen) {
+      screen.classList.add('fade-out');
+      setTimeout(() => {
+        screen.style.display = 'none';
+      }, 500);
+    }
+  }
+
+  async start() {
+    this.updateLoadingProgress(15);
     this.loop.start();
+    try {
+      await this.sceneManager.start();
+      this.updateLoadingProgress(100);
+    } catch (err) {
+      console.error('[Game] Error starting scene:', err);
+    } finally {
+      setTimeout(() => this.hideLoadingScreen(), 200);
+    }
   }
 
   update(dt) {

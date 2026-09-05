@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 /**
- * CollisionSystem — Simple robust cylinder/circle collision for player and obstacles.
- * Prevents clipping through trees, rocks, plane wreckage, and bounds.
+ * CollisionSystem — High-performance cylinder/circle collision for player and obstacles.
+ * Optimized with AABB broadphase rejection.
  */
 export class CollisionSystem {
   constructor(boundaryRadius = 36) {
@@ -17,7 +17,7 @@ export class CollisionSystem {
       const pTransform = world.getComponent(pId, 'Transform');
       const pCollider = world.getComponent(pId, 'Collider');
 
-      // 1. Check against static obstacles (trees, rocks, plane, campfire)
+      // 1. Check against static obstacles (trees, rocks, plane, beacon)
       for (const oId of obstacles) {
         if (pId === oId) continue;
         const oCollider = world.getComponent(oId, 'Collider');
@@ -27,9 +27,13 @@ export class CollisionSystem {
 
         const dx = pTransform.position.x - oTransform.position.x;
         const dz = pTransform.position.z - oTransform.position.z;
+        const minDist = pCollider.radius + oCollider.radius;
+
+        // Broadphase fast AABB rejection
+        if (Math.abs(dx) > minDist || Math.abs(dz) > minDist) continue;
+
         const distSq = dx * dx + dz * dz;
 
-        const minDist = pCollider.radius + oCollider.radius;
         if (distSq < minDist * minDist && distSq > 0.0001) {
           const dist = Math.sqrt(distSq);
           const overlap = minDist - dist;
@@ -44,12 +48,12 @@ export class CollisionSystem {
       }
 
       // 2. Boundary constraint (Keep player within clearing radius)
-      const centerDist = Math.sqrt(
+      const centerDistSq =
         pTransform.position.x * pTransform.position.x +
-        pTransform.position.z * pTransform.position.z
-      );
+        pTransform.position.z * pTransform.position.z;
 
-      if (centerDist > this.boundaryRadius) {
+      if (centerDistSq > this.boundaryRadius * this.boundaryRadius) {
+        const centerDist = Math.sqrt(centerDistSq);
         const nx = pTransform.position.x / centerDist;
         const nz = pTransform.position.z / centerDist;
         pTransform.position.x = nx * this.boundaryRadius;

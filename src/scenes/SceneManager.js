@@ -17,9 +17,9 @@ export class SceneManager {
   /**
    * Starts the initial scene defined in sceneConfig.start or override.
    */
-  start(initialSceneId = null) {
+  async start(initialSceneId = null) {
     const targetId = initialSceneId || sceneConfig.start;
-    return this.goTo(targetId, true);
+    return await this.goTo(targetId, true);
   }
 
   /**
@@ -27,7 +27,7 @@ export class SceneManager {
    * Validates target in sceneConfig and sceneRegistry.
    * Cleans up previous scene completely.
    */
-  goTo(targetSceneId, force = false) {
+  async goTo(targetSceneId, force = false) {
     if (this.isTransitioning) {
       console.warn(`[SceneManager] Transition in progress. Discarding goTo("${targetSceneId}")`);
       return false;
@@ -81,7 +81,7 @@ export class SceneManager {
         this.game.gameState.markSceneVisited(targetSceneId);
       }
 
-      nextScene.enter();
+      await nextScene.enter();
 
       // 6. Notify observers (UI updates navigation buttons)
       this.emit('sceneChanged', {

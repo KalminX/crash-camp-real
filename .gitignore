@@ -1,3 +1,6 @@
 node_modules/
 dist/
+dist_old_root/
 .DS_Store
+# Local Netlify folder
+.netlify

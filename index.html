@@ -2,11 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Crash Camp — Multi-Scene Architecture</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="loading-card">
+        <div class="loading-title">CRASH CAMP</div>
+        <div class="loading-subtitle">ACT I — THE CRASH</div>
+        <div class="loading-bar-wrap">
+          <div id="loading-bar" class="loading-bar" style="width: 15%;"></div>
+        </div>
+        <div id="loading-status" class="loading-status">Loading survivor assets...</div>
+      </div>
+    </div>
+
     <!-- 3D Canvas Container -->
     <div id="game-container"></div>
 

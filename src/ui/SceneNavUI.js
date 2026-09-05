@@ -55,7 +55,13 @@ export class SceneNavUI {
     this.container.innerHTML = `
       <div class="nav-panel">
         <div class="panel-header">
-          <span class="panel-tag">ACT I &bull; THE CRASH</span>
+          <div class="panel-header-top">
+            <span class="panel-tag">ACT I &bull; THE CRASH</span>
+            <div class="panel-header-actions">
+              <button type="button" class="panel-view-btn active" id="panel-view-btn" title="Switch View between First-Person and Bird's-Eye [V]">BIRD VIEW</button>
+              <button type="button" class="panel-collapse-btn" id="panel-collapse-btn" aria-label="Toggle Panel">−</button>
+            </div>
+          </div>
           <div class="scene-current">
             <span class="scene-label">SCENE 1</span>
             <span class="scene-name">${currentSceneName.toUpperCase()}</span>
@@ -106,12 +112,30 @@ export class SceneNavUI {
         </div>
 
         <div class="panel-footer">
-          <span>Click canvas for mouse look &bull; WASD to explore</span>
+          <span>[V] View &bull; [E] Action &bull; WASD / Joy to Move</span>
         </div>
       </div>
     `;
 
     // Connect click handlers
+    const collapseBtn = this.container.querySelector('#panel-collapse-btn');
+    const navPanel = this.container.querySelector('.nav-panel');
+    if (collapseBtn && navPanel) {
+      collapseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isCollapsed = navPanel.classList.toggle('collapsed');
+        collapseBtn.textContent = isCollapsed ? '+' : '−';
+      });
+    }
+
+    const viewBtn = this.container.querySelector('#panel-view-btn');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.game.toggleCameraMode();
+      });
+    }
+
     const buttons = this.container.querySelectorAll('.nav-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
