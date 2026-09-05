@@ -27,6 +27,10 @@ export class TouchControls {
     this.lookLastPos = { x: 0, y: 0 };
     this.lookSens = 1.35;
 
+    // Pinch-to-zoom touch state
+    this.isPinching = false;
+    this.pinchLastDist = 0;
+
     // Sprint toggle state
     this.sprintToggled = false;
 
@@ -67,9 +71,9 @@ export class TouchControls {
     this.container.className = 'touch-controls-container hidden';
 
     this.container.innerHTML = `
-      <!-- Touch Camera Look Zone (Covers Right Screen Area) -->
+      <!-- Touch Camera Look & Pinch-to-Zoom Zone -->
       <div id="touch-look-zone" class="touch-look-zone">
-        <div class="touch-look-hint">DRAG TO LOOK</div>
+        <div class="touch-look-hint">DRAG TO LOOK • PINCH TO ZOOM</div>
       </div>
 
       <!-- Virtual Joystick Zone (Bottom Left) -->
@@ -181,16 +185,39 @@ export class TouchControls {
       joyZone.addEventListener('touchcancel', resetJoy, { passive: false });
     }
 
-    // 2. Camera Look Touch Tracking (Right Screen Zone)
+    // 2. Camera Look & Pinch-to-Zoom Touch Tracking
     if (lookZone) {
+      const getTouchesOnLookZone = (e) => {
+        const touches = [];
+        for (let i = 0; i < e.touches.length; i++) {
+          const t = e.touches[i];
+          if (t.identifier !== this.joystickTouchId) {
+            touches.push(t);
+          }
+        }
+        return touches;
+      };
+
       lookZone.addEventListener(
         'touchstart',
         (e) => {
           e.preventDefault();
-          e.stopPropagation();
-          const touch = e.changedTouches[0];
-          this.lookTouchId = touch.identifier;
-          this.lookLastPos = { x: touch.clientX, y: touch.clientY };
+          const activeTouches = getTouchesOnLookZone(e);
+
+          if (activeTouches.length >= 2) {
+            // Two or more fingers: start pinch-to-zoom gesture
+            this.isPinching = true;
+            this.lookTouchId = null; // Suppress camera look jitter while zooming
+
+            const t0 = activeTouches[0];
+            const t1 = activeTouches[1];
+            this.pinchLastDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+          } else if (activeTouches.length === 1 && !this.isPinching) {
+            // Single finger: camera look pan
+            const touch = activeTouches[0];
+            this.lookTouchId = touch.identifier;
+            this.lookLastPos = { x: touch.clientX, y: touch.clientY };
+          }
         },
         { passive: false }
       );
@@ -199,9 +226,29 @@ export class TouchControls {
         'touchmove',
         (e) => {
           e.preventDefault();
-          e.stopPropagation();
-          for (let i = 0; i < e.changedTouches.length; i++) {
-            const touch = e.changedTouches[i];
+          const activeTouches = getTouchesOnLookZone(e);
+
+          if (activeTouches.length >= 2) {
+            // Active pinch-to-zoom
+            this.isPinching = true;
+            this.lookTouchId = null;
+
+            const t0 = activeTouches[0];
+            const t1 = activeTouches[1];
+            const currentDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+
+            if (this.pinchLastDist > 0) {
+              const deltaDist = currentDist - this.pinchLastDist;
+              // Fingers spreading apart (deltaDist > 0) -> Zoom in (decrease camera distance)
+              // Fingers pinching together (deltaDist < 0) -> Zoom out (increase camera distance)
+              const zoomScale = 0.04;
+              this.input.zoomDelta -= deltaDist * zoomScale;
+            }
+
+            this.pinchLastDist = currentDist;
+          } else if (activeTouches.length === 1 && !this.isPinching) {
+            // Single finger camera look
+            const touch = activeTouches[0];
             if (touch.identifier === this.lookTouchId) {
               const dx = (touch.clientX - this.lookLastPos.x) * this.lookSens;
               const dy = (touch.clientY - this.lookLastPos.y) * this.lookSens;
@@ -210,24 +257,37 @@ export class TouchControls {
               // Feed camera delta into Input manager
               this.input.mouseDeltaX += dx;
               this.input.mouseDeltaY += dy;
-              break;
             }
           }
         },
         { passive: false }
       );
 
-      const resetLook = (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === this.lookTouchId) {
-            this.lookTouchId = null;
-            break;
-          }
+      const resetLookOrPinch = (e) => {
+        const activeTouches = getTouchesOnLookZone(e);
+
+        if (activeTouches.length >= 2) {
+          // Still pinching with at least 2 fingers
+          const t0 = activeTouches[0];
+          const t1 = activeTouches[1];
+          this.pinchLastDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        } else if (activeTouches.length === 1) {
+          // 1 finger left after pinch -> smoothly transition to single finger look
+          this.isPinching = false;
+          this.pinchLastDist = 0;
+          const touch = activeTouches[0];
+          this.lookTouchId = touch.identifier;
+          this.lookLastPos = { x: touch.clientX, y: touch.clientY };
+        } else {
+          // All fingers released
+          this.isPinching = false;
+          this.pinchLastDist = 0;
+          this.lookTouchId = null;
         }
       };
 
-      lookZone.addEventListener('touchend', resetLook, { passive: false });
-      lookZone.addEventListener('touchcancel', resetLook, { passive: false });
+      lookZone.addEventListener('touchend', resetLookOrPinch, { passive: false });
+      lookZone.addEventListener('touchcancel', resetLookOrPinch, { passive: false });
     }
 
     // 3. PS-Style Action Buttons

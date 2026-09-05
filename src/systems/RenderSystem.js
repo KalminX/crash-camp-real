@@ -152,12 +152,21 @@ export class RenderSystem {
      * Mouse movement never changes camera distance.
      */
     if (input.zoomDelta !== 0) {
-      this.camDistance = THREE.MathUtils.clamp(
-        this.camDistance +
-          input.zoomDelta * this.zoomSpeed,
-        this.minDistance,
-        this.maxDistance,
-      );
+      if (this.cameraMode === "birds-eye") {
+        this.camDistance = THREE.MathUtils.clamp(
+          this.camDistance +
+            input.zoomDelta * this.zoomSpeed,
+          this.minDistance,
+          this.maxDistance,
+        );
+      } else if (this.cameraMode === "first-person") {
+        this.camera.fov = THREE.MathUtils.clamp(
+          this.camera.fov + input.zoomDelta * 2.5,
+          40,
+          85,
+        );
+        this.camera.updateProjectionMatrix();
+      }
     }
 
     /*
