@@ -1,0 +1,99 @@
+{
+  "version": "1.0.0",
+  "sceneId": "scene-02-the-last-fire",
+  "name": "The Last Fire",
+  "description": "Act I Scene 2: Keep the fire burning to power the emergency beacon through the night.",
+  "gridConfig": {
+    "cols": 24,
+    "rows": 24,
+    "cellSize": 2.5,
+    "originX": -30,
+    "originZ": -30
+  },
+  "legend": {
+    ".": null,
+    "T": "tree_pine",
+    "t": "tree_pine_small",
+    "R": "rock_boulder",
+    "r": "rock_small",
+    "C": "campfire",
+    "B": "emergency_beacon",
+    "L": "collectible_log",
+    "P": "player_spawn"
+  },
+  "grid": [
+    "TTTTTTTTTTTTTTTTTTTTTTTT",
+    "TT.....t..........r...TT",
+    "T...R...............R..T",
+    "T.......L..............T",
+    "T....t................LT",
+    "T......................T",
+    "T..L....r..............T",
+    "T..........B...........T",
+    "T..........C...........T",
+    "T........P.............T",
+    "T..................L...T",
+    "T......L...............T",
+    "T...........L..........T",
+    "T......................T",
+    "T...R.........r.....R..T",
+    "T.......L..............T",
+    "T............t.........T",
+    "T......r............L..T",
+    "T......................T",
+    "TT.....t..........r...TT",
+    "TTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "modelRegistry": {
+    "tree_pine": {
+      "model": "createTree",
+      "args": [1.2],
+      "collider": { "radius": 0.65, "height": 3.6, "isStatic": true }
+    },
+    "tree_pine_small": {
+      "model": "createTree",
+      "args": [0.8],
+      "collider": { "radius": 0.5, "height": 2.5, "isStatic": true }
+    },
+    "rock_boulder": {
+      "model": "createRock",
+      "args": [1.3],
+      "collider": { "radius": 0.9, "height": 1.2, "isStatic": true }
+    },
+    "rock_small": {
+      "model": "createRock",
+      "args": [0.65],
+      "collider": { "radius": 0.5, "height": 0.6, "isStatic": true }
+    },
+    "campfire": {
+      "model": "createCampfire",
+      "collider": { "radius": 1.4, "height": 1.0, "isStatic": true },
+      "interactable": {
+        "prompt": "Add wood to campfire",
+        "actionType": "feed_fire",
+        "maxDistance": 3.0
+      }
+    },
+    "emergency_beacon": {
+      "model": "createEmergencyBeacon",
+      "args": [],
+      "collider": { "radius": 0.7, "height": 2.4, "isStatic": true },
+      "interactable": {
+        "prompt": "Inspect beacon connection",
+        "actionType": "inspect_beacon_power",
+        "maxDistance": 3.0
+      }
+    },
+    "collectible_log": {
+      "model": "createLog",
+      "interactable": {
+        "prompt": "Pick up firewood log",
+        "actionType": "pickup_log",
+        "maxDistance": 2.6
+      }
+    },
+    "player_spawn": {
+      "type": "spawn"
+    }
+  }
+}

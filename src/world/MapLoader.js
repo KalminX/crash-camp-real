@@ -23,22 +23,22 @@ export class MapLoader {
 
   registerDefaults() {
     this.registerModel('tree_pine', (def) => ({
-      mesh: ProceduralModels.createTree(def.args?.[0] || 1.2),
+      mesh: ProceduralModels.createTreeLOD(def.args?.[0] || 1.2),
       collider: def.collider,
     }));
 
     this.registerModel('tree_pine_small', (def) => ({
-      mesh: ProceduralModels.createTree(def.args?.[0] || 0.8),
+      mesh: ProceduralModels.createTreeLOD(def.args?.[0] || 0.8),
       collider: def.collider,
     }));
 
     this.registerModel('rock_boulder', (def) => ({
-      mesh: ProceduralModels.createRock(def.args?.[0] || 1.3),
+      mesh: ProceduralModels.createRockLOD(def.args?.[0] || 1.3),
       collider: def.collider,
     }));
 
     this.registerModel('rock_small', (def) => ({
-      mesh: ProceduralModels.createRock(def.args?.[0] || 0.65),
+      mesh: ProceduralModels.createRockLOD(def.args?.[0] || 0.65),
       collider: def.collider,
     }));
 
@@ -78,6 +78,22 @@ export class MapLoader {
     this.registerModel('furrow_impact', () => ({
       mesh: ProceduralModels.createImpactFurrow(),
     }));
+
+    this.registerModel('campfire', (def) => {
+      const data = ProceduralModels.createCampfire();
+      data.group.userData.campfireData = data;
+      return {
+        mesh: data.group,
+        collider: def.collider,
+        interactable: def.interactable,
+      };
+    });
+
+    this.registerModel('collectible_log', (def) => ({
+      mesh: ProceduralModels.createLog(),
+      collider: def.collider,
+      interactable: def.interactable,
+    }));
   }
 
   /**
@@ -103,6 +119,10 @@ export class MapLoader {
     const ground = ProceduralModels.createClearingGround(groundRadius);
     threeScene.add(ground);
 
+    // Batch collectors for high-density repetitive environmental tokens
+    const treeInstances = [];
+    const rockInstances = [];
+
     for (let r = 0; r < grid.length && r < rows; r++) {
       const rowStr = grid[r];
       for (let c = 0; c < rowStr.length && c < cols; c++) {
@@ -121,9 +141,45 @@ export class MapLoader {
           continue;
         }
 
-        // Get factory from registry or JSON definition
-        const factory = this.modelRegistry.get(token);
         const def = jsonDefs[token] || {};
+
+        // 1. High-Performance Batch Instancing for Trees & Rocks
+        if (token === 'tree_pine' || token === 'tree_pine_small') {
+          const scale = def.args?.[0] || (token === 'tree_pine' ? 1.2 : 0.8);
+          treeInstances.push({ x: wx, y: 0, z: wz, scale });
+
+          // Retain ECS Entity for collision
+          const entityId = ecsWorld.createEntity();
+          ecsWorld.addComponent(entityId, 'Transform', Components.Transform(wx, 0, wz));
+          const colDef = def.collider || { radius: scale * 0.55, height: scale * 3.0 };
+          ecsWorld.addComponent(
+            entityId,
+            'Collider',
+            Components.Collider(colDef.radius || 0.6, colDef.height || 2.5, true)
+          );
+          result.entities.push({ id: entityId, token });
+          continue;
+        }
+
+        if (token === 'rock_boulder' || token === 'rock_small') {
+          const scale = def.args?.[0] || (token === 'rock_boulder' ? 1.3 : 0.65);
+          rockInstances.push({ x: wx, y: 0, z: wz, scale });
+
+          // Retain ECS Entity for collision
+          const entityId = ecsWorld.createEntity();
+          ecsWorld.addComponent(entityId, 'Transform', Components.Transform(wx, 0, wz));
+          const colDef = def.collider || { radius: scale * 0.7, height: scale * 1.0 };
+          ecsWorld.addComponent(
+            entityId,
+            'Collider',
+            Components.Collider(colDef.radius || 0.6, colDef.height || 1.0, true)
+          );
+          result.entities.push({ id: entityId, token });
+          continue;
+        }
+
+        // 2. Individual Unique Entities (Wreckage, Beacon, Crates, Campfire, etc.)
+        const factory = this.modelRegistry.get(token);
 
         if (!factory) {
           console.warn(`[MapLoader] No model factory registered for token "${token}" (char: "${char}")`);
@@ -163,10 +219,21 @@ export class MapLoader {
         result.entities.push({ id: entityId, token, mesh });
 
         // Save reference if it is a key gameplay item
-        if (token === 'emergency_beacon' || token === 'engine_turbine') {
+        if (token === 'emergency_beacon' || token === 'engine_turbine' || token === 'campfire') {
           result.specialEntities.set(token, { id: entityId, mesh, def });
         }
       }
+    }
+
+    // 3. Instantiate Batched Environmental Meshes (Compresses 800+ meshes into 3 draw calls)
+    if (treeInstances.length > 0) {
+      const pineForest = ProceduralModels.createInstancedPineForest(treeInstances);
+      threeScene.add(pineForest);
+    }
+
+    if (rockInstances.length > 0) {
+      const rockField = ProceduralModels.createInstancedRockField(rockInstances);
+      threeScene.add(rockField);
     }
 
     return result;

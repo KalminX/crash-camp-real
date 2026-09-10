@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "sceneId": "scene-03-morning-after",
+  "name": "Morning After",
+  "description": "Act II Scene 3: Morning arrives in silence. No rescue helicopter came. Investigate flight documents and survivor tracks.",
+  "gridConfig": {
+    "cols": 24,
+    "rows": 24,
+    "cellSize": 2.5,
+    "originX": -30,
+    "originZ": -30
+  },
+  "legend": {
+    ".": null,
+    "T": "tree_pine",
+    "t": "tree_pine_small",
+    "R": "rock_boulder",
+    "r": "rock_small",
+    "W": "fuselage_wreckage",
+    "D": "flight_documents",
+    "M": "first_aid_kit",
+    "F": "rations_crate",
+    "P": "player_spawn"
+  },
+  "grid": [
+    "TTTTTTTTTTTTTTTTTTTTTTTT",
+    "TT.....t..........r...TT",
+    "T...R...............R..T",
+    "T......................T",
+    "T....t.................T",
+    "T...........D..........T",
+    "T.......r..............T",
+    "T..........WW..........T",
+    "T..........WW..........T",
+    "T........P.............T",
+    "T......................T",
+    "T......D...............T",
+    "T...........F..........T",
+    "T......................T",
+    "T...R.........r.....R..T",
+    "T...................M..T",
+    "T............t.........T",
+    "T......r...............T",
+    "T......................T",
+    "TT.....t..........r...TT",
+    "TTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "modelRegistry": {
+    "tree_pine": {
+      "model": "createTree",
+      "args": [1.2],
+      "collider": { "radius": 0.65, "height": 3.6, "isStatic": true }
+    },
+    "tree_pine_small": {
+      "model": "createTree",
+      "args": [0.8],
+      "collider": { "radius": 0.5, "height": 2.5, "isStatic": true }
+    },
+    "rock_boulder": {
+      "model": "createRock",
+      "args": [1.3],
+      "collider": { "radius": 0.9, "height": 1.2, "isStatic": true }
+    },
+    "rock_small": {
+      "model": "createRock",
+      "args": [0.65],
+      "collider": { "radius": 0.5, "height": 0.6, "isStatic": true }
+    },
+    "fuselage_wreckage": {
+      "model": "createPlaneWreckage",
+      "args": [],
+      "collider": { "radius": 3.8, "height": 3.5, "isStatic": true }
+    },
+    "flight_documents": {
+      "model": "createFlightDocuments",
+      "args": [],
+      "interactable": {
+        "prompt": "Inspect classified flight dossier",
+        "actionType": "inspect_dossier",
+        "maxDistance": 2.8
+      }
+    },
+    "rations_crate": {
+      "model": "createRationBox",
+      "args": [],
+      "collider": { "radius": 0.6, "height": 0.6, "isStatic": true },
+      "interactable": {
+        "prompt": "Salvage ration pack",
+        "actionType": "salvage_rations",
+        "maxDistance": 2.8
+      }
+    },
+    "first_aid_kit": {
+      "model": "createFirstAidKit",
+      "args": [],
+      "interactable": {
+        "prompt": "Salvage medical pouch",
+        "actionType": "salvage_medkit",
+        "maxDistance": 2.8
+      }
+    },
+    "player_spawn": {
+      "type": "spawn"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "sceneId": "scene-one",
+  "sceneId": "scene-01-the-crash",
   "name": "The Crash Site",
   "description": "Grid-based layout for Act I Scene 1: Flight 402 wreckage clearing.",
   "gridConfig": {

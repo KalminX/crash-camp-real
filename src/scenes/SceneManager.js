@@ -2,8 +2,8 @@ import { sceneConfig } from './sceneConfig.js';
 import { sceneRegistry } from './sceneRegistry.js';
 
 /**
- * SceneManager — Controls scene lifecycle, transitions, and validation.
- * Reads sceneConfig for connection rules and sceneRegistry for implementations.
+ * SceneManager — Controls scene lifecycle, dynamic chunk loading, transitions,
+ * and two-way URL synchronization (?scene=<scene-id>).
  */
 export class SceneManager {
   constructor(game) {
@@ -12,48 +12,126 @@ export class SceneManager {
     this.currentSceneId = null;
     this.isTransitioning = false;
     this.listeners = new Map();
+
+    this.setupHistoryListener();
+    this.setupGoalAutoTransition();
+  }
+
+  setupGoalAutoTransition() {
+    if (!this.game || !this.game.gameState) return;
+
+    this.game.gameState.on('sceneGoalsCompleted', ({ sceneId, nextSceneId }) => {
+      if (!nextSceneId) return;
+
+      if (this.game.ui) {
+        this.game.ui.showToast('All Objectives Complete! Advancing in 2s...');
+      }
+
+      setTimeout(() => {
+        if (this.currentSceneId === sceneId && !this.isTransitioning) {
+          this.goTo(nextSceneId, true, true);
+        }
+      }, 1800);
+    });
   }
 
   /**
-   * Starts the initial scene defined in sceneConfig.start or override.
+   * Listen for browser forward/back buttons to transition scenes seamlessly.
+   */
+  setupHistoryListener() {
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener('popstate', (event) => {
+      const targetId = event.state?.sceneId || this.getUrlSceneId() || sceneConfig.start;
+      if (targetId && targetId !== this.currentSceneId) {
+        this.goTo(targetId, true, false);
+      }
+    });
+  }
+
+  /**
+   * Reads ?scene= query parameter from browser address bar.
+   */
+  getUrlSceneId() {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const sceneParam = params.get('scene');
+    if (sceneParam && sceneConfig.scenes[sceneParam]) {
+      const cfg = sceneConfig.scenes[sceneParam];
+      return cfg.aliasOf || sceneParam;
+    }
+    return null;
+  }
+
+  /**
+   * Synchronizes browser URL query string with current scene without reloading.
+   */
+  updateUrl(sceneId, push = true) {
+    if (typeof window === 'undefined') return;
+    try {
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get('scene') !== sceneId) {
+        currentUrl.searchParams.set('scene', sceneId);
+        if (push) {
+          window.history.pushState({ sceneId }, '', currentUrl.toString());
+        } else {
+          window.history.replaceState({ sceneId }, '', currentUrl.toString());
+        }
+      }
+    } catch (err) {
+      console.warn('[SceneManager] Error updating URL:', err);
+    }
+  }
+
+  /**
+   * Boots initial scene.
+   * Priority: URL query param (?scene=...) -> initialSceneId argument -> sceneConfig.start
    */
   async start(initialSceneId = null) {
-    const targetId = initialSceneId || sceneConfig.start;
-    return await this.goTo(targetId, true);
+    const urlTarget = this.getUrlSceneId();
+    let targetId = urlTarget || initialSceneId || sceneConfig.start;
+
+    // Resolve alias
+    if (sceneConfig.scenes[targetId]?.aliasOf) {
+      targetId = sceneConfig.scenes[targetId].aliasOf;
+    }
+
+    this.updateUrl(targetId, false);
+    return await this.goTo(targetId, true, false);
   }
 
   /**
    * Transitions to the target scene ID.
-   * Validates target in sceneConfig and sceneRegistry.
-   * Cleans up previous scene completely.
+   * Dynamically loads scene code chunk, fully disposes old scene, updates GameState and URL.
    */
-  async goTo(targetSceneId, force = false) {
+  async goTo(targetSceneId, force = false, updateHistory = true) {
     if (this.isTransitioning) {
       console.warn(`[SceneManager] Transition in progress. Discarding goTo("${targetSceneId}")`);
       return false;
     }
 
-    // 1. Validate target exists in configuration
+    // Resolve aliases
     const targetConfig = sceneConfig.scenes[targetSceneId];
     if (!targetConfig) {
       console.error(`[SceneManager] Unknown sceneId in sceneConfig: "${targetSceneId}"`);
       return false;
     }
+    const resolvedId = targetConfig.aliasOf || targetSceneId;
 
-    // 2. Validate target exists in registry
-    const SceneClass = sceneRegistry[targetSceneId];
-    if (!SceneClass) {
-      console.error(`[SceneManager] No Scene class registered in sceneRegistry for: "${targetSceneId}"`);
+    // Validate target exists in registry
+    const loader = sceneRegistry[resolvedId];
+    if (!loader) {
+      console.error(`[SceneManager] No Scene loader registered in sceneRegistry for: "${resolvedId}"`);
       return false;
     }
 
-    // 3. Validate connection rule (unless starting or forced)
+    // Validate connection rule (unless starting, forced, or dev jump)
     if (!force && this.currentSceneId) {
       const currentConfig = sceneConfig.scenes[this.currentSceneId];
       const validConnections = currentConfig?.connections || [];
-      if (!validConnections.includes(targetSceneId)) {
+      if (!validConnections.includes(resolvedId)) {
         console.warn(
-          `[SceneManager] Disallowed transition: "${this.currentSceneId}" -> "${targetSceneId}". Valid connections:`,
+          `[SceneManager] Disallowed transition: "${this.currentSceneId}" -> "${resolvedId}". Valid connections:`,
           validConnections
         );
         return false;
@@ -64,36 +142,59 @@ export class SceneManager {
     const previousSceneId = this.currentSceneId;
 
     try {
-      // 4. Exit and dispose previous scene
+      // 1. Exit and deep dispose previous scene
       if (this.currentScene) {
         this.currentScene.exit();
         this.currentScene.dispose();
         this.currentScene = null;
       }
 
-      // 5. Instantiate and enter new scene
-      this.currentSceneId = targetSceneId;
+      // 2. Dynamically import target scene module if lazy loader
+      let SceneClass = null;
+      if (typeof loader === 'function') {
+        const module = await loader();
+        SceneClass = module.default || module[Object.keys(module)[0]];
+      } else {
+        SceneClass = loader;
+      }
+
+      if (!SceneClass) {
+        throw new Error(`Failed to resolve SceneClass from loader for "${resolvedId}"`);
+      }
+
+      // 3. Instantiate and enter new scene
+      this.currentSceneId = resolvedId;
       const nextScene = new SceneClass(this.game);
       this.currentScene = nextScene;
 
       // Update persistent GameState
       if (this.game.gameState) {
-        this.game.gameState.markSceneVisited(targetSceneId);
+        this.game.gameState.markSceneVisited(resolvedId);
       }
 
       await nextScene.enter();
 
-      // 6. Notify observers (UI updates navigation buttons)
+      // 4. Update browser URL history
+      if (updateHistory) {
+        this.updateUrl(resolvedId, true);
+      }
+
+      // 5. Notify observers (UI updates navigation buttons, objectives, dev drawer)
+      const resolvedConfig = sceneConfig.scenes[resolvedId] || targetConfig;
       this.emit('sceneChanged', {
-        currentSceneId: targetSceneId,
-        currentSceneName: targetConfig.name,
+        currentSceneId: resolvedId,
+        currentSceneName: resolvedConfig.name,
+        act: resolvedConfig.act,
+        actName: resolvedConfig.actName,
+        defaultObjective: resolvedConfig.defaultObjective,
         previousSceneId,
         availableTransitions: this.getAvailableTransitions(),
+        allScenes: this.getAllScenesList(),
       });
 
       return true;
     } catch (err) {
-      console.error(`[SceneManager] Failed to transition to "${targetSceneId}":`, err);
+      console.error(`[SceneManager] Failed to transition to "${resolvedId}":`, err);
       return false;
     } finally {
       this.isTransitioning = false;
@@ -134,6 +235,24 @@ export class SceneManager {
         tagline: targetCfg ? targetCfg.tagline : '',
       };
     });
+  }
+
+  /**
+   * Returns full list of non-aliased scenes for the Dev Panel.
+   */
+  getAllScenesList() {
+    const list = [];
+    for (const [id, cfg] of Object.entries(sceneConfig.scenes)) {
+      if (cfg.aliasOf) continue;
+      list.push({
+        id,
+        name: cfg.name,
+        act: cfg.act,
+        actName: cfg.actName,
+        tagline: cfg.tagline,
+      });
+    }
+    return list;
   }
 
   on(event, callback) {

@@ -1,6 +1,7 @@
 /**
  * SceneNavUI — Handcrafted Game UI based on CRASH CAMP UI/UX Style Guide.
- * Restrained, functional, physical, zero emojis, Lucide SVG icons, anti-AI aesthetic.
+ * Includes HUD, current objectives, inventory, scene transition drawer,
+ * and a standalone, noise-free, compact Developer Toolbar dock.
  */
 
 const ICONS = {
@@ -18,12 +19,20 @@ export class SceneNavUI {
     this.toastContainer = document.getElementById('toast-container');
     this.reticle = document.getElementById('reticle');
 
+    this.isDevOpen = false;
+    this.lastSceneData = null;
+    this.devToolbarEl = null;
+
     this.init();
   }
 
   init() {
+    this.createDevToolbar();
+
     this.game.sceneManager.on('sceneChanged', (data) => {
+      this.lastSceneData = data;
       this.render(data);
+      this.updateDevToolbar(data);
     });
 
     this.game.gameState.on('inventoryChanged', () => {
@@ -38,39 +47,205 @@ export class SceneNavUI {
     this.game.gameState.on('storyChanged', () => {
       this.updateObjective();
     });
+    this.game.gameState.on('goalChanged', () => {
+      this.updateGoalsView();
+    });
+
+    // Dedicated keybinding: ONLY Tilde / Backquote toggles dev toolbar
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.code === 'Backquote' || e.key === '`' || e.key === '~') {
+        e.preventDefault();
+        this.toggleDevPanel();
+      }
+    });
+  }
+
+  createDevToolbar() {
+    if (document.getElementById('dev-toolbar')) {
+      this.devToolbarEl = document.getElementById('dev-toolbar');
+      return;
+    }
+
+    const bar = document.createElement('div');
+    bar.id = 'dev-toolbar';
+    bar.className = 'dev-toolbar';
+    bar.innerHTML = `
+      <span class="dev-tag">DEV:</span>
+      <span class="dev-fps dev-fps-good" id="dev-fps-display">60 FPS • 16.6ms</span>
+      <span class="dev-sep"></span>
+      <div class="dev-group" id="dev-scenes-group"></div>
+      <span class="dev-sep"></span>
+      <div class="dev-group">
+        <button type="button" class="dev-btn" id="cheat-wood" title="Fill wood to max">+WOOD</button>
+        <button type="button" class="dev-btn" id="cheat-food" title="Fill food to max">+FOOD</button>
+        <button type="button" class="dev-btn" id="cheat-heal" title="Restore 100% health">HEAL</button>
+        <button type="button" class="dev-btn" id="cheat-reset" title="Empty inventory">RESET</button>
+        <button type="button" class="dev-btn" id="cheat-wipe" title="Wipe LocalStorage & IndexedDB">WIPE</button>
+      </div>
+      <span class="dev-sep"></span>
+      <span class="dev-url-text" id="dev-url-display">?scene=...</span>
+      <button type="button" class="dev-close-btn" id="dev-close-btn" title="Close Dev Toolbar [~]">✕</button>
+    `;
+
+    document.body.appendChild(bar);
+    this.devToolbarEl = bar;
+
+    // Connect cheat buttons
+    bar.querySelector('#cheat-wood')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.game.gameState.inventory.wood = this.game.gameState.inventory.maxWood;
+      this.game.gameState.emit('inventoryChanged', this.game.gameState.inventory);
+      this.showToast('Cheat: Wood set to max (5/5)');
+    });
+
+    bar.querySelector('#cheat-food')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.game.gameState.inventory.food = this.game.gameState.inventory.maxFood;
+      this.game.gameState.emit('inventoryChanged', this.game.gameState.inventory);
+      this.showToast('Cheat: Food set to max (5/5)');
+    });
+
+    bar.querySelector('#cheat-heal')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.game.gameState.heal(100);
+      this.showToast('Cheat: Health restored to 100%');
+    });
+
+    bar.querySelector('#cheat-reset')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.game.gameState.inventory.wood = 0;
+      this.game.gameState.inventory.food = 0;
+      this.game.gameState.emit('inventoryChanged', this.game.gameState.inventory);
+      this.showToast('Cheat: Inventory cleared');
+    });
+
+    bar.querySelector('#cheat-wipe')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await this.game.gameState.wipeStorage();
+      this.showToast('Storage wiped (IndexedDB & LocalStorage cleared)');
+      if (this.lastSceneData) {
+        this.render(this.lastSceneData);
+      }
+    });
+
+    bar.querySelector('#dev-close-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleDevPanel(false);
+    });
+  }
+
+  updateDevToolbar(data) {
+    if (!this.devToolbarEl) return;
+
+    const { currentSceneId, allScenes = [] } = data;
+    const group = this.devToolbarEl.querySelector('#dev-scenes-group');
+    const urlDisplay = this.devToolbarEl.querySelector('#dev-url-display');
+
+    if (urlDisplay) {
+      urlDisplay.textContent = `?scene=${currentSceneId}`;
+    }
+
+    if (group) {
+      const sceneLabels = {
+        'scene-00-intro': '0: INTRO',
+        'scene-01-the-crash': '1: CRASH',
+        'scene-02-the-last-fire': '2: FIRE',
+        'scene-03-morning-after': '3: DAWN',
+      };
+
+      group.innerHTML = allScenes
+        .map((s) => {
+          const isActive = s.id === currentSceneId;
+          const label = sceneLabels[s.id] || s.name.toUpperCase();
+          return `<button type="button" class="dev-btn ${isActive ? 'active' : ''}" data-dev-id="${s.id}">${label}</button>`;
+        })
+        .join('');
+
+      group.querySelectorAll('.dev-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetId = btn.getAttribute('data-dev-id');
+          if (targetId && targetId !== currentSceneId) {
+            this.game.sceneManager.goTo(targetId, true, true);
+          }
+        });
+      });
+    }
+  }
+
+  toggleDevPanel(forceState = null) {
+    this.isDevOpen = forceState !== null ? forceState : !this.isDevOpen;
+    if (this.devToolbarEl) {
+      this.devToolbarEl.classList.toggle('open', this.isDevOpen);
+    }
+    const devBtn = document.getElementById('panel-dev-btn');
+    if (devBtn) {
+      devBtn.classList.toggle('active', this.isDevOpen);
+    }
   }
 
   render(data) {
     if (!this.container) return;
 
-    const { currentSceneId, currentSceneName, availableTransitions } = data;
+    const {
+      currentSceneId,
+      currentSceneName,
+      act = 'ACT I',
+      actName = 'THE CRASH',
+      defaultObjective = 'Survive and explore the wilderness',
+      availableTransitions = [],
+    } = data;
+
     const inv = this.game.gameState.inventory;
     const player = this.game.gameState.player;
-    const isBeaconFound = this.game.gameState.story.beaconDiscovered;
 
-    const objectiveText = isBeaconFound
-      ? 'Power the beacon: Auxiliary power required'
-      : 'Locate and inspect the emergency beacon';
+    const goalsProgress = this.game.gameState.getSceneGoalsProgress(currentSceneId);
 
     this.container.innerHTML = `
       <div class="nav-panel">
         <div class="panel-header">
           <div class="panel-header-top">
-            <span class="panel-tag">ACT I &bull; THE CRASH</span>
+            <span class="panel-tag">${act} &bull; ${actName}</span>
             <div class="panel-header-actions">
-              <button type="button" class="panel-view-btn active" id="panel-view-btn" title="Switch View between First-Person and Bird's-Eye [V]">BIRD VIEW</button>
+              <span class="hud-fps-badge dev-fps-good" id="hud-fps-badge" title="Real-time Frame Rate">60 FPS</span>
+              <button type="button" class="panel-dev-btn ${this.isDevOpen ? 'active' : ''}" id="panel-dev-btn" title="Toggle Developer Toolbar [~]">DEV</button>
+              <button type="button" class="panel-view-btn active" id="panel-view-btn" title="Toggle Camera View [V]">BIRD VIEW</button>
               <button type="button" class="panel-collapse-btn" id="panel-collapse-btn" aria-label="Toggle Panel">−</button>
             </div>
           </div>
           <div class="scene-current">
-            <span class="scene-label">SCENE 1</span>
+            <span class="scene-label">${act}</span>
             <span class="scene-name">${currentSceneName.toUpperCase()}</span>
           </div>
         </div>
 
-        <div class="objective-box">
-          <span class="objective-label">CURRENT OBJECTIVE</span>
-          <span class="objective-text" id="ui-objective">${objectiveText}</span>
+        <div class="objective-box" id="ui-objective-box">
+          ${
+            goalsProgress.total > 0
+              ? `
+            <div class="objective-header">
+              <span class="objective-label">SCENE OBJECTIVES</span>
+              <span class="objective-counter" id="ui-goals-counter">${goalsProgress.completed}/${goalsProgress.total}</span>
+            </div>
+            <div class="goals-list" id="ui-goals-list">
+              ${goalsProgress.goals
+                .map(
+                  (g) => `
+                <div class="goal-row ${g.completed ? 'completed' : ''}">
+                  <span class="goal-checkbox">${g.completed ? '✓' : '○'}</span>
+                  <span class="goal-text">${g.text}</span>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          `
+              : `
+            <span class="objective-label">CURRENT STATUS</span>
+            <span class="objective-text" id="ui-objective">${defaultObjective}</span>
+          `
+          }
         </div>
 
         <div class="state-strip">
@@ -91,8 +266,9 @@ export class SceneNavUI {
           </div>
         </div>
 
+        <!-- Story Transitions Section -->
         <div class="transitions-section">
-          <div class="section-title">SCENE TRANSITIONS</div>
+          <div class="section-title">STORY TRANSITIONS</div>
           <div class="transition-buttons">
             ${
               availableTransitions.length > 0
@@ -106,18 +282,18 @@ export class SceneNavUI {
             `
                     )
                     .join('')
-                : '<div class="no-transitions">Focus: Scene 1 (Active)</div>'
+                : '<div class="no-transitions">No direct story exit unlocked yet</div>'
             }
           </div>
         </div>
 
         <div class="panel-footer">
-          <span>[V] View &bull; [E] Action &bull; WASD / Joy to Move</span>
+          <span>[V] View &bull; [~] Dev &bull; [E] Action &bull; WASD / Joy</span>
         </div>
       </div>
     `;
 
-    // Connect click handlers
+    // Connect event handlers
     const collapseBtn = this.container.querySelector('#panel-collapse-btn');
     const navPanel = this.container.querySelector('.nav-panel');
     if (collapseBtn && navPanel) {
@@ -125,6 +301,14 @@ export class SceneNavUI {
         e.stopPropagation();
         const isCollapsed = navPanel.classList.toggle('collapsed');
         collapseBtn.textContent = isCollapsed ? '+' : '−';
+      });
+    }
+
+    const devBtn = this.container.querySelector('#panel-dev-btn');
+    if (devBtn) {
+      devBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleDevPanel();
       });
     }
 
@@ -136,8 +320,9 @@ export class SceneNavUI {
       });
     }
 
-    const buttons = this.container.querySelectorAll('.nav-btn');
-    buttons.forEach((btn) => {
+    // Story transition buttons
+    const navButtons = this.container.querySelectorAll('.nav-btn');
+    navButtons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const targetId = btn.getAttribute('data-target');
@@ -146,6 +331,30 @@ export class SceneNavUI {
         }
       });
     });
+  }
+
+  updateGoalsView() {
+    if (!this.lastSceneData) return;
+    const progress = this.game.gameState.getSceneGoalsProgress(this.lastSceneData.currentSceneId);
+    const counterEl = document.getElementById('ui-goals-counter');
+    const listEl = document.getElementById('ui-goals-list');
+
+    if (counterEl) {
+      counterEl.textContent = `${progress.completed}/${progress.total}`;
+    }
+
+    if (listEl && progress.goals) {
+      listEl.innerHTML = progress.goals
+        .map(
+          (g) => `
+        <div class="goal-row ${g.completed ? 'completed' : ''}">
+          <span class="goal-checkbox">${g.completed ? '✓' : '○'}</span>
+          <span class="goal-text">${g.text}</span>
+        </div>
+      `
+        )
+        .join('');
+    }
   }
 
   updateStateView() {
@@ -159,20 +368,20 @@ export class SceneNavUI {
     if (hpEl) hpEl.textContent = `${Math.round(player.health)}%`;
   }
 
-  updateObjective() {
-    const isBeaconFound = this.game.gameState.story.beaconDiscovered;
+  updateObjective(customText = null) {
     const objEl = document.getElementById('ui-objective');
     if (objEl) {
-      objEl.textContent = isBeaconFound
-        ? 'Power the beacon: Auxiliary power required'
-        : 'Locate and inspect the emergency beacon';
+      if (customText) {
+        objEl.textContent = customText;
+      } else if (this.lastSceneData && this.lastSceneData.defaultObjective) {
+        objEl.textContent = this.lastSceneData.defaultObjective;
+      }
     }
   }
 
   setPrompt(promptText = null) {
     if (this.promptEl) {
       if (promptText) {
-        // Strip any residual "[E]" or "Press [E]" to format clean physical key
         const cleanText = promptText.replace(/^Press \[E\] (or Click to )?/i, '').replace(/^\[E\] /i, '');
         this.promptEl.innerHTML = `<span class="key-badge">E</span><span class="prompt-text">${cleanText}</span>`;
         this.promptEl.classList.remove('hidden');
@@ -192,6 +401,46 @@ export class SceneNavUI {
     this.toastContainer.appendChild(toast);
     setTimeout(() => {
       if (toast.parentNode) toast.parentNode.removeChild(toast);
-    }, 2200);
+    }, 2400);
+  }
+
+  update(dt) {
+    this.updateFpsDisplay();
+  }
+
+  updateFpsDisplay() {
+    if (!this.game || !this.game.time) return;
+
+    const fps = this.game.time.fps;
+    const ms = this.game.time.frameTimeMs;
+
+    if (fps === this._lastRenderedFps && ms === this._lastRenderedMs) {
+      return;
+    }
+    this._lastRenderedFps = fps;
+    this._lastRenderedMs = ms;
+
+    let statusClass = 'dev-fps-good';
+    if (fps < 30) {
+      statusClass = 'dev-fps-bad';
+    } else if (fps < 55) {
+      statusClass = 'dev-fps-mid';
+    }
+
+    // 1. Permanent HUD Badge
+    const hudBadge = document.getElementById('hud-fps-badge');
+    if (hudBadge) {
+      hudBadge.textContent = `${fps} FPS`;
+      hudBadge.className = `hud-fps-badge ${statusClass}`;
+    }
+
+    // 2. Dev Toolbar Display
+    if (this.devToolbarEl) {
+      const devFps = this.devToolbarEl.querySelector('#dev-fps-display');
+      if (devFps) {
+        devFps.textContent = `${fps} FPS • ${ms}ms`;
+        devFps.className = `dev-fps ${statusClass}`;
+      }
+    }
   }
 }

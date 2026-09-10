@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "sceneId": "scene-00-intro",
+  "name": "Flight 402",
+  "description": "Prologue Scene: Flight 402 passenger airliner penetrating sub-zero mountain storm before impact.",
+  "gridConfig": {
+    "cols": 1,
+    "rows": 1,
+    "cellSize": 10,
+    "originX": 0,
+    "originZ": 0
+  },
+  "legend": {
+    ".": null
+  },
+  "grid": [
+    "."
+  ]
+}

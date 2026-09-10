@@ -215,6 +215,20 @@ canvas {
   margin-bottom: var(--space-3);
 }
 
+.objective-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.objective-counter {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
 .objective-label {
   display: block;
   font-family: var(--font-mono);
@@ -222,7 +236,42 @@ canvas {
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--color-ash);
-  margin-bottom: 2px;
+}
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.goal-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-warm-white);
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.goal-row.completed {
+  color: var(--color-ash);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.goal-checkbox {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fbbf24;
+  user-select: none;
+}
+
+.goal-row.completed .goal-checkbox {
+  color: #4ade80;
+  text-decoration: none;
 }
 
 .objective-text {
@@ -421,6 +470,250 @@ canvas {
 .panel-view-btn.active {
   background: rgba(82, 99, 74, 0.6);
   border-color: rgba(231, 225, 211, 0.5);
+}
+
+.panel-dev-btn {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--color-ash);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.panel-dev-btn:hover {
+  background: var(--color-charcoal);
+  color: var(--color-warm-white);
+  border-color: rgba(231, 225, 211, 0.4);
+}
+
+.panel-dev-btn.active {
+  background: rgba(82, 99, 74, 0.6);
+  border-color: rgba(231, 225, 211, 0.5);
+  color: var(--color-warm-white);
+}
+
+.hud-fps-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  user-select: none;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dev-fps {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.dev-fps-good {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(22, 101, 52, 0.22);
+}
+
+.dev-fps-mid {
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.32);
+  background: rgba(113, 63, 18, 0.25);
+}
+
+.dev-fps-bad {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(127, 29, 29, 0.3);
+}
+
+/* ==========================================================================
+   DEV TOOLBAR (Compact, noise-free floating dock)
+   ========================================================================== */
+
+#dev-toolbar {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 95;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background: rgba(14, 18, 15, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 2px 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  user-select: none;
+  pointer-events: auto;
+}
+
+#dev-toolbar.open {
+  display: flex;
+}
+
+.dev-tag {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-ash);
+  padding-right: 3px;
+}
+
+.dev-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.dev-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xs);
+  color: var(--color-warm-white);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.dev-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.dev-btn.active {
+  background: rgba(82, 99, 74, 0.7);
+  border-color: rgba(231, 225, 211, 0.5);
+  color: #fff;
+}
+
+.dev-sep {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 2px;
+}
+
+.dev-url-text {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--color-ash);
+  padding: 0 2px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-ash);
+  font-size: 10px;
+  padding: 0 3px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.dev-close-btn:hover {
+  color: var(--color-warm-white);
+}
+
+/* ==========================================================================
+   DIALOGUE & NARRATIVE BOX
+   ========================================================================== */
+
+.dialogue-box {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(540px, 92vw);
+  z-index: 80;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dialogue-box.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
+}
+
+.dialogue-inner {
+  background: rgba(16, 20, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xs);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
+.dialogue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dialogue-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fbbf24;
+}
+
+.dialogue-close {
+  font-size: 10px;
+  color: var(--color-ash);
+  cursor: pointer;
+}
+
+.dialogue-close:hover {
+  color: var(--color-warm-white);
+}
+
+.dialogue-body {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-warm-white);
+  margin-bottom: var(--space-2);
+}
+
+.dialogue-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-ash);
 }
 
 .panel-collapse-btn {

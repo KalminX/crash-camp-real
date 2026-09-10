@@ -174,6 +174,24 @@ export class Input {
   }
 
   /**
+   * Clears all pressed key states and mouse deltas (e.g. when opening modal dialogue or switching scenes).
+   */
+  reset() {
+    this.keys.forward = false;
+    this.keys.backward = false;
+    this.keys.left = false;
+    this.keys.right = false;
+    this.keys.sprint = false;
+    this.interactPressed = false;
+    this.eatPressed = false;
+    this.viewTogglePressed = false;
+    this.mouseDeltaX = 0;
+    this.mouseDeltaY = 0;
+    this.zoomDelta = 0;
+    this.isDragging = false;
+  }
+
+  /**
    * Applies current frame inputs directly to an ECS PlayerInput component.
    */
   updatePlayerInput(playerInput) {

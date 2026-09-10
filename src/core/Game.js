@@ -6,6 +6,7 @@ import { GameLoop } from './GameLoop.js';
 import { SceneManager } from '../scenes/SceneManager.js';
 import { AudioSystem } from '../audio/AudioSystem.js';
 import { SceneNavUI } from '../ui/SceneNavUI.js';
+import { DialogueUI } from '../ui/DialogueUI.js';
 
 /**
  * Game — Master Application Coordinator.
@@ -15,10 +16,10 @@ export class Game {
   constructor(containerId = 'game-container') {
     this.container = document.getElementById(containerId) || document.body;
 
-    // 1. Central WebGL Renderer (Shared across all scenes)
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // 1. Central WebGL Renderer (Shared across all scenes - Optimized 1.0x pixel ratio for maximum FPS)
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', precision: 'mediump' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -34,7 +35,8 @@ export class Game {
     // 3. Scene Management
     this.sceneManager = new SceneManager(this);
 
-    // 4. UI Overlay
+    // 4. UI Overlay & Dialogue
+    this.dialogue = new DialogueUI(this);
     this.ui = new SceneNavUI(this);
 
     // 5. Game Loop
@@ -133,6 +135,9 @@ export class Game {
 
   update(dt) {
     this.sceneManager.update(dt);
+    if (this.ui && typeof this.ui.update === 'function') {
+      this.ui.update(dt);
+    }
   }
 
   render() {

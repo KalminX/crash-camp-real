@@ -20,9 +20,9 @@
 
 | Act | Scene | Title | Core Objective / Event | Status |
 |:---:|:-----:|:------|:-----------------------|:------:|
-| **I** | **1** | **The Crash** | Wake up at wreckage, salvage emergency supplies, find beacon | 🟡 IN PROGRESS |
-| I | 2 | The Last Fire | Collect wood, fuel campfire/beacon power, survive the night | 🔒 LOCKED |
-| **II** | 3 | Morning After | Sunrise: rescue never came; investigate unusual aircraft damage | 🔒 LOCKED |
+| **I** | **1** | **The Crash** | Wake up at wreckage, salvage emergency supplies, find beacon | 🟢 COMPLETE |
+| I | 2 | The Last Fire | Collect wood, fuel campfire/beacon power, survive the night | 🟢 SAMPLE SCENE |
+| **II** | 3 | Morning After | Sunrise: rescue never came; investigate unusual aircraft damage | 🟢 SAMPLE SCENE |
 | II | 4 | Search for Survivors | Discover footprints/blood/clues, track trail into wilderness | 🔒 LOCKED |
 | II | 5 | The Other Survivor | Find injured survivor; first dialogue choices (help/leave/question) | 🔒 LOCKED |
 | **III** | 6 | Into the Forest | Push deeper: rivers, caves, animal trails, strange markings | 🔒 LOCKED |

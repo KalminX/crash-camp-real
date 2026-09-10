@@ -58,6 +58,234 @@ const charcoalMaterial = new THREE.MeshStandardMaterial({
 
 export const ProceduralModels = {
   /**
+   * Procedural Pine Tree with 3-tier Level of Detail (LOD).
+   * Automatically switches between detailed mesh, mid-poly, and far silhouette based on camera distance.
+   */
+  createTreeLOD(heightScale = 1) {
+    const lod = new THREE.LOD();
+
+    const trunkHeight = 2.4 * heightScale;
+    const trunkRadius = 0.28 * heightScale;
+    const baseRadius = 1.6 * heightScale;
+    const layerHeight = 2.0 * heightScale;
+    const foliageMat = Math.random() > 0.5 ? needleMaterialDark : needleMaterialLight;
+
+    // --- LEVEL 0 (Near: 0m - 18m) ---
+    // Full 3-tier stacked cone foliage with shadows
+    const groupL0 = new THREE.Group();
+    const trunkGeo0 = new THREE.CylinderGeometry(trunkRadius * 0.7, trunkRadius, trunkHeight, 6);
+    const trunk0 = new THREE.Mesh(trunkGeo0, barkMaterial);
+    trunk0.position.y = trunkHeight / 2;
+    trunk0.castShadow = true;
+    trunk0.receiveShadow = true;
+    groupL0.add(trunk0);
+
+    for (let i = 0; i < 3; i++) {
+      const radius = baseRadius * (1 - i * 0.25);
+      const coneGeo = new THREE.ConeGeometry(radius, layerHeight, 7);
+      const cone = new THREE.Mesh(coneGeo, foliageMat);
+      cone.position.y = trunkHeight * 0.75 + i * (layerHeight * 0.55);
+      cone.rotation.x = (Math.random() - 0.5) * 0.08;
+      cone.rotation.z = (Math.random() - 0.5) * 0.08;
+      cone.castShadow = true;
+      cone.receiveShadow = true;
+      groupL0.add(cone);
+    }
+    lod.addLevel(groupL0, 0);
+
+    // --- LEVEL 1 (Mid: 18m - 36m) ---
+    // 2-tier simplified cone foliage, foliage castShadow disabled
+    const groupL1 = new THREE.Group();
+    const trunkGeo1 = new THREE.CylinderGeometry(trunkRadius * 0.7, trunkRadius, trunkHeight, 5);
+    const trunk1 = new THREE.Mesh(trunkGeo1, barkMaterial);
+    trunk1.position.y = trunkHeight / 2;
+    trunk1.receiveShadow = true;
+    groupL1.add(trunk1);
+
+    for (let i = 0; i < 2; i++) {
+      const radius = baseRadius * (1 - i * 0.3);
+      const coneGeo = new THREE.ConeGeometry(radius, layerHeight * 1.3, 5);
+      const cone = new THREE.Mesh(coneGeo, foliageMat);
+      cone.position.y = trunkHeight * 0.75 + i * (layerHeight * 0.75);
+      cone.receiveShadow = true;
+      groupL1.add(cone);
+    }
+    lod.addLevel(groupL1, 18);
+
+    // --- LEVEL 2 (Far: > 36m) ---
+    // Single 4-sided pyramid cone, zero shadows, minimum vertex overhead
+    const groupL2 = new THREE.Group();
+    const coneGeo2 = new THREE.ConeGeometry(baseRadius * 0.9, layerHeight * 2.2, 4);
+    const cone2 = new THREE.Mesh(coneGeo2, foliageMat);
+    cone2.position.y = trunkHeight * 0.75 + layerHeight;
+    groupL2.add(cone2);
+
+    const trunkGeo2 = new THREE.CylinderGeometry(trunkRadius * 0.7, trunkRadius, trunkHeight, 4);
+    const trunk2 = new THREE.Mesh(trunkGeo2, barkMaterial);
+    trunk2.position.y = trunkHeight / 2;
+    groupL2.add(trunk2);
+
+    lod.addLevel(groupL2, 36);
+
+    return lod;
+  },
+
+  /**
+   * Procedural Craggy Rock with 2-tier Level of Detail (LOD).
+   * Level 0: Deformed craggy dodecahedron with shadows.
+   * Level 1: Low-poly 8-facet octahedron, shadows off.
+   */
+  createRockLOD(scale = 1) {
+    const lod = new THREE.LOD();
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.08, 0.05, 0.25 + Math.random() * 0.12),
+      roughness: 0.95,
+      flatShading: true,
+    });
+
+    // --- LEVEL 0 (Near: 0m - 15m) ---
+    const geo0 = new THREE.DodecahedronGeometry(1.2 * scale, 1);
+    const pos = geo0.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const vx = pos.getX(i);
+      const vy = pos.getY(i);
+      const vz = pos.getZ(i);
+      const jitter = 0.85 + Math.random() * 0.3;
+      pos.setXYZ(i, vx * jitter, vy * jitter * 0.8, vz * jitter);
+    }
+    geo0.computeVertexNormals();
+
+    const mesh0 = new THREE.Mesh(geo0, rockMat);
+    mesh0.position.y = (1.2 * scale) * 0.4;
+    mesh0.castShadow = true;
+    mesh0.receiveShadow = true;
+    lod.addLevel(mesh0, 0);
+
+    // --- LEVEL 1 (Far: > 15m) ---
+    const geo1 = new THREE.OctahedronGeometry(1.15 * scale, 0);
+    const mesh1 = new THREE.Mesh(geo1, rockMat);
+    mesh1.position.y = (1.2 * scale) * 0.4;
+    mesh1.receiveShadow = true;
+    lod.addLevel(mesh1, 15);
+
+    return lod;
+  },
+
+  /**
+   * High-Performance Instanced Pine Forest.
+   * Renders dozens or hundreds of pine trees in just 2 draw calls (1 trunk batch + 1 foliage batch).
+   */
+  createInstancedPineForest(instances = []) {
+    const count = instances.length;
+    if (count === 0) return new THREE.Group();
+
+    const group = new THREE.Group();
+    group.name = 'instancedPineForest';
+
+    // 1. Shared Trunk InstancedMesh (1 draw call for all trunks)
+    const trunkGeo = new THREE.CylinderGeometry(0.2, 0.28, 2.4, 6);
+    trunkGeo.translate(0, 1.2, 0); // Base at y=0
+    const trunkInst = new THREE.InstancedMesh(trunkGeo, barkMaterial, count);
+    trunkInst.castShadow = true;
+    trunkInst.receiveShadow = true;
+
+    // 2. Shared Foliage Cones InstancedMesh (3 cones per tree, 1 draw call for all foliage)
+    const coneGeo = new THREE.ConeGeometry(1.6, 2.0, 7);
+    coneGeo.translate(0, 1.0, 0); // Base at y=0
+    const foliageInst = new THREE.InstancedMesh(coneGeo, needleMaterialDark, count * 3);
+    foliageInst.castShadow = true;
+    foliageInst.receiveShadow = true;
+
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < count; i++) {
+      const { x, y = 0, z, scale = 1 } = instances[i];
+
+      // Trunk
+      dummy.position.set(x, y, z);
+      dummy.scale.set(scale, scale, scale);
+      dummy.rotation.set(0, (i * 1.618) % (Math.PI * 2), 0);
+      dummy.updateMatrix();
+      trunkInst.setMatrixAt(i, dummy.matrix);
+
+      // 3 Foliage Cone layers
+      const trunkHeight = 2.4 * scale;
+      const layerHeight = 2.0 * scale;
+      for (let layer = 0; layer < 3; layer++) {
+        const layerScale = scale * (1 - layer * 0.22);
+        const coneY = y + trunkHeight * 0.72 + layer * (layerHeight * 0.52);
+        dummy.position.set(x, coneY, z);
+        dummy.scale.set(layerScale, scale, layerScale);
+        dummy.rotation.set(
+          Math.sin(i + layer) * 0.04,
+          (i * 2.3 + layer * 1.7) % (Math.PI * 2),
+          Math.cos(i + layer) * 0.04
+        );
+        dummy.updateMatrix();
+        foliageInst.setMatrixAt(i * 3 + layer, dummy.matrix);
+      }
+    }
+
+    trunkInst.instanceMatrix.needsUpdate = true;
+    foliageInst.instanceMatrix.needsUpdate = true;
+    group.add(trunkInst);
+    group.add(foliageInst);
+
+    return group;
+  },
+
+  /**
+   * High-Performance Instanced Rock Field.
+   * Renders all rocks in 1 single draw call.
+   */
+  createInstancedRockField(instances = []) {
+    const count = instances.length;
+    if (count === 0) return new THREE.Group();
+
+    const group = new THREE.Group();
+    group.name = 'instancedRockField';
+
+    const rockGeo = new THREE.DodecahedronGeometry(1.2, 1);
+    const pos = rockGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const vx = pos.getX(i);
+      const vy = pos.getY(i);
+      const vz = pos.getZ(i);
+      const jitter = 0.88 + ((i * 13) % 100) * 0.0024;
+      pos.setXYZ(i, vx * jitter, vy * jitter * 0.75, vz * jitter);
+    }
+    rockGeo.computeVertexNormals();
+
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: 0x484643,
+      roughness: 0.95,
+      flatShading: true,
+    });
+
+    const rockInst = new THREE.InstancedMesh(rockGeo, rockMat, count);
+    rockInst.castShadow = true;
+    rockInst.receiveShadow = true;
+
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < count; i++) {
+      const { x, y = 0, z, scale = 1 } = instances[i];
+      dummy.position.set(x, y + 1.2 * scale * 0.4, z);
+      dummy.scale.set(scale, scale, scale);
+      dummy.rotation.set(
+        ((i * 17) % 10) * 0.1,
+        (i * 2.1) % (Math.PI * 2),
+        ((i * 23) % 10) * 0.1
+      );
+      dummy.updateMatrix();
+      rockInst.setMatrixAt(i, dummy.matrix);
+    }
+
+    rockInst.instanceMatrix.needsUpdate = true;
+    group.add(rockInst);
+
+    return group;
+  },
+
+  /**
    * Procedural Pine Tree (Cylinder trunk + stacked cones)
    */
   createTree(heightScale = 1) {
@@ -225,16 +453,13 @@ export const ProceduralModels = {
     ember.position.y = 0.08;
     group.add(ember);
 
-    // 4. Point Light for illumination (Warm, radiant campfire glow)
+    // 4. Point Light for illumination (Warm, radiant campfire glow without heavy 6-pass cubemap shadows)
     const fireLight = new THREE.PointLight(0xff7a18, 5.5, 32, 1.1);
     fireLight.position.set(0, 1.2, 0);
-    fireLight.castShadow = true;
-    fireLight.shadow.bias = -0.002;
-    fireLight.shadow.mapSize.width = 1024;
-    fireLight.shadow.mapSize.height = 1024;
+    fireLight.castShadow = false;
     group.add(fireLight);
 
-    // 5. Procedural flame particles (InstancedMesh or Particle Group)
+    // 5. Procedural flame particles (InstancedMesh — 1 single draw call)
     const particleCount = 36;
     const particleGeo = new THREE.SphereGeometry(0.14, 5, 4);
     const particleMat = new THREE.MeshBasicMaterial({
@@ -242,14 +467,17 @@ export const ProceduralModels = {
       transparent: true,
       opacity: 0.85,
       blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
-    const flameGroup = new THREE.Group();
-    flameGroup.name = 'flameParticles';
+    const instancedFlames = new THREE.InstancedMesh(particleGeo, particleMat, particleCount);
+    instancedFlames.name = 'instancedFlameParticles';
+    instancedFlames.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    group.add(instancedFlames);
 
-    const particles = [];
+    const particlesData = [];
+    const _dummyMat = new THREE.Object3D();
     for (let i = 0; i < particleCount; i++) {
-      const p = new THREE.Mesh(particleGeo, particleMat.clone());
-      p.userData = {
+      const data = {
         baseY: 0.15,
         speed: 1.2 + Math.random() * 1.5,
         radius: Math.random() * 0.45,
@@ -257,16 +485,181 @@ export const ProceduralModels = {
         life: Math.random(),
         maxLife: 0.8 + Math.random() * 0.6,
       };
-      flameGroup.add(p);
-      particles.push(p);
+      particlesData.push(data);
+      _dummyMat.position.set(0, data.baseY, 0);
+      _dummyMat.updateMatrix();
+      instancedFlames.setMatrixAt(i, _dummyMat.matrix);
     }
-    group.add(flameGroup);
+    instancedFlames.instanceMatrix.needsUpdate = true;
 
     return {
       group,
       fireLight,
-      particles,
+      instancedFlames,
+      particlesData,
+      particles: particlesData,
       ember,
+    };
+  },
+
+  /**
+   * Procedural In-Flight Commercial Airliner (Flight 402)
+   * Fuselage, swept wings, turbofans, tail fin, cabin windows, and nav lights.
+   */
+  createFlightAirplane() {
+    const group = new THREE.Group();
+
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: 0xd8dde4,
+      roughness: 0.35,
+      metalness: 0.3,
+    });
+    const darkMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.5,
+      metalness: 0.7,
+    });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.1,
+      metalness: 0.9,
+    });
+    const cabinWindowMat = new THREE.MeshBasicMaterial({
+      color: 0xffe8b3,
+    });
+
+    // 1. Fuselage (Central tube aligned along Z-axis)
+    const bodyGeo = new THREE.CylinderGeometry(1.35, 1.35, 12, 16);
+    const body = new THREE.Mesh(bodyGeo, planeMat);
+    body.rotation.x = Math.PI / 2;
+    group.add(body);
+
+    // Nose cone (Front, facing -Z)
+    const noseGeo = new THREE.ConeGeometry(1.35, 3.2, 16);
+    const nose = new THREE.Mesh(noseGeo, planeMat);
+    nose.rotation.x = -Math.PI / 2;
+    nose.position.z = -7.6;
+    group.add(nose);
+
+    // Tail cone (Rear, facing +Z)
+    const tailConeGeo = new THREE.ConeGeometry(1.35, 4.0, 16);
+    const tailCone = new THREE.Mesh(tailConeGeo, planeMat);
+    tailCone.rotation.x = Math.PI / 2;
+    tailCone.position.z = 8.0;
+    group.add(tailCone);
+
+    // Cockpit windshield
+    const windshieldGeo = new THREE.BoxGeometry(1.4, 0.45, 0.9);
+    const windshield = new THREE.Mesh(windshieldGeo, glassMat);
+    windshield.position.set(0, 0.75, -6.6);
+    windshield.rotation.x = 0.35;
+    group.add(windshield);
+
+    // 2. Cabin Windows (Rows on left and right)
+    for (let side of [-1, 1]) {
+      const windowStripGeo = new THREE.PlaneGeometry(8.5, 0.22);
+      const windowStrip = new THREE.Mesh(windowStripGeo, cabinWindowMat);
+      windowStrip.position.set(side * 1.36, 0.3, -0.5);
+      windowStrip.rotation.y = (side * Math.PI) / 2;
+      group.add(windowStrip);
+    }
+
+    // 3. Swept-Back Main Wings
+    const wingSpan = 18;
+    const wingDepth = 3.2;
+    const wingGeo = new THREE.BoxGeometry(wingSpan, 0.18, wingDepth);
+    const wings = new THREE.Mesh(wingGeo, planeMat);
+    wings.position.set(0, -0.2, 0.5);
+    group.add(wings);
+
+    // Wingtips (Vertical winglets)
+    for (let side of [-1, 1]) {
+      const wingletGeo = new THREE.BoxGeometry(0.12, 0.85, 1.4);
+      const winglet = new THREE.Mesh(wingletGeo, planeMat);
+      winglet.position.set(side * (wingSpan / 2), 0.3, 0.5);
+      group.add(winglet);
+    }
+
+    // Navigation lights (Red on left port, Green on right starboard)
+    const portLightGeo = new THREE.SphereGeometry(0.08, 6, 6);
+    const portLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const portLightMesh = new THREE.Mesh(portLightGeo, portLightMat);
+    portLightMesh.position.set(-wingSpan / 2 - 0.05, 0.3, 0.5);
+    group.add(portLightMesh);
+
+    const portLight = new THREE.PointLight(0xef4444, 2.0, 6);
+    portLight.position.copy(portLightMesh.position);
+    group.add(portLight);
+
+    const stbdLightGeo = new THREE.SphereGeometry(0.08, 6, 6);
+    const stbdLightMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+    const stbdLightMesh = new THREE.Mesh(stbdLightGeo, stbdLightMat);
+    stbdLightMesh.position.set(wingSpan / 2 + 0.05, 0.3, 0.5);
+    group.add(stbdLightMesh);
+
+    const stbdLight = new THREE.PointLight(0x22c55e, 2.0, 6);
+    stbdLight.position.copy(stbdLightMesh.position);
+    group.add(stbdLight);
+
+    // 4. Turbofan Jet Engines (Hung under wings)
+    const engineGeo = new THREE.CylinderGeometry(0.55, 0.55, 2.6, 12);
+    const intakeGeo = new THREE.CircleGeometry(0.48, 12);
+    const intakeMat = new THREE.MeshBasicMaterial({ color: 0x050508 });
+
+    const leftEngineGroup = new THREE.Group();
+    leftEngineGroup.name = 'leftEngine';
+    const leftCowl = new THREE.Mesh(engineGeo, planeMat);
+    leftCowl.rotation.x = Math.PI / 2;
+    leftEngineGroup.add(leftCowl);
+
+    const leftIntake = new THREE.Mesh(intakeGeo, intakeMat);
+    leftIntake.rotation.y = Math.PI;
+    leftIntake.position.z = -1.31;
+    leftEngineGroup.add(leftIntake);
+
+    leftEngineGroup.position.set(-3.8, -1.0, 0.4);
+    group.add(leftEngineGroup);
+
+    const rightEngineGroup = new THREE.Group();
+    rightEngineGroup.name = 'rightEngine';
+    const rightCowl = new THREE.Mesh(engineGeo, planeMat);
+    rightCowl.rotation.x = Math.PI / 2;
+    rightEngineGroup.add(rightCowl);
+
+    const rightIntake = new THREE.Mesh(intakeGeo, intakeMat);
+    rightIntake.rotation.y = Math.PI;
+    rightIntake.position.z = -1.31;
+    rightEngineGroup.add(rightIntake);
+
+    rightEngineGroup.position.set(3.8, -1.0, 0.4);
+    group.add(rightEngineGroup);
+
+    // 5. Tail Empennage
+    // Vertical fin (rudder)
+    const rudderGeo = new THREE.BoxGeometry(0.18, 3.2, 2.8);
+    const rudder = new THREE.Mesh(rudderGeo, planeMat);
+    rudder.position.set(0, 2.2, 8.2);
+    rudder.rotation.x = -0.35;
+    group.add(rudder);
+
+    // Tail strobe light (blinking white)
+    const strobeLight = new THREE.PointLight(0xffffff, 3.5, 12);
+    strobeLight.position.set(0, 3.8, 8.8);
+    group.add(strobeLight);
+
+    // Horizontal stabilizers (elevators)
+    const hStabGeo = new THREE.BoxGeometry(6.4, 0.12, 1.8);
+    const hStab = new THREE.Mesh(hStabGeo, planeMat);
+    hStab.position.set(0, 0.6, 8.4);
+    group.add(hStab);
+
+    return {
+      group,
+      leftEngine: leftEngineGroup,
+      rightEngine: rightEngineGroup,
+      strobeLight,
+      portLight,
+      stbdLight,
     };
   },
 
