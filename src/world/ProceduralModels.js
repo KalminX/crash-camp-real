@@ -492,7 +492,7 @@ export const ProceduralModels = {
     }
     instancedFlames.instanceMatrix.needsUpdate = true;
 
-    return {
+    const campfireData = {
       group,
       fireLight,
       instancedFlames,
@@ -500,6 +500,15 @@ export const ProceduralModels = {
       particles: particlesData,
       ember,
     };
+    group.userData.campfireData = campfireData;
+    group.fireLight = fireLight;
+    group.instancedFlames = instancedFlames;
+    group.particlesData = particlesData;
+    group.particles = particlesData;
+    group.ember = ember;
+    group.group = group;
+
+    return group;
   },
 
   /**

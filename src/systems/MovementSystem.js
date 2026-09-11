@@ -15,14 +15,19 @@ import * as THREE from 'three';
  * movement from the movement system.
  */
 export class MovementSystem {
-  constructor(audioSystem) {
+  constructor(audioSystem, heightProvider = null) {
     this.audioSystem = audioSystem;
+    this.heightProvider = heightProvider;
 
     this.stepTimer = 0;
 
     // Preallocated vectors to avoid allocations in the game loop.
     this._moveDir = new THREE.Vector3();
     this._up = new THREE.Vector3(0, 1, 0);
+  }
+
+  setHeightProvider(provider) {
+    this.heightProvider = provider;
   }
 
   update(world, dt) {
@@ -117,6 +122,13 @@ export class MovementSystem {
         transform.position.z +=
           vel.z * dt;
 
+        if (typeof this.heightProvider === 'function') {
+          transform.position.y = this.heightProvider(
+            transform.position.x,
+            transform.position.z
+          );
+        }
+
         // -------------------------------------------------------
         // Character facing
         // -------------------------------------------------------
@@ -179,6 +191,13 @@ export class MovementSystem {
 
         vel.x = 0;
         vel.z = 0;
+
+        if (typeof this.heightProvider === 'function') {
+          transform.position.y = this.heightProvider(
+            transform.position.x,
+            transform.position.z
+          );
+        }
 
         // Prevent a footstep from immediately triggering when
         // movement resumes.

@@ -5,11 +5,11 @@ import { ProceduralModels } from '../../../world/ProceduralModels.js';
 import { MovementSystem } from '../../../systems/MovementSystem.js';
 import { CollisionSystem } from '../../../systems/CollisionSystem.js';
 import { RenderSystem } from '../../../systems/RenderSystem.js';
-import { MapLoader } from '../../../world/MapLoader.js';
 import { CharacterLoader } from '../../../world/CharacterLoader.js';
 import { FireSystem } from './FireSystem.js';
 import { ParticleFactory } from '../../../world/ParticleSystem.js';
-import mapData from './map.json' with { type: 'json' };
+import { WorldSeed } from '../../../world/WorldSeed.js';
+import { ProceduralTerrain } from '../../../world/ProceduralTerrain.js';
 
 /**
  * ACT I — SCENE 2: THE LAST FIRE
@@ -29,10 +29,13 @@ export class SceneTheLastFire extends BaseScene {
     this.blizzardEmitter = null;
     this.time = 0;
 
-    // Lights & Highlights
+    // Terrain & Props
+    this.terrainBuild = null;
     this.beaconLight = null;
+    this.beaconGroup = null;
     this.highlightRing = null;
     this.campfireMesh = null;
+    this.cableMesh = null;
 
     // Preallocated math scratch vectors
     this._playerPos = new THREE.Vector3();
@@ -69,47 +72,90 @@ export class SceneTheLastFire extends BaseScene {
     moonLight.shadow.camera.far = 70;
     this.threeScene.add(moonLight);
 
-    // 3. Load Map from co-located map.json
-    const mapLoader = new MapLoader();
-    const mapResult = mapLoader.load(mapData, this.ecsWorld, this.threeScene);
+    // 3. Mount 220m x 220m Themed Procedural Terrain ('the-last-fire')
+    const worldSeed = WorldSeed.getSeed();
+    const terrain = new ProceduralTerrain({
+      seed: worldSeed,
+      theme: 'the-last-fire',
+      size: 220,
+    });
+    this.terrainBuild = terrain.build(this.ecsWorld);
+    this.threeScene.add(this.terrainBuild.group);
 
-    // 4. Setup Campfire & FireSystem
-    const campfireEntity = mapResult.specialEntities.get('campfire');
-    if (campfireEntity && campfireEntity.mesh) {
-      this.campfireMesh = campfireEntity.mesh;
-      const campfireData = campfireEntity.mesh.userData.campfireData;
-      if (campfireData) {
-        this.fireSystem = new FireSystem(
-          campfireEntity.mesh,
-          campfireData.fireLight,
-          campfireData.particles,
-          this.game.audio,
-          campfireData.instancedFlames,
-          campfireData.particlesData
-        );
+    // Register tree and rock obstacle colliders for playable landscape
+    if (this.terrainBuild.colliders) {
+      for (const c of this.terrainBuild.colliders) {
+        const colEntity = this.ecsWorld.createEntity();
+        this.ecsWorld.addComponent(colEntity, 'Transform', Components.Transform(c.x, c.y || 0, c.z));
+        this.ecsWorld.addComponent(colEntity, 'Collider', Components.Collider(c.radius, c.height || 3.0, false));
       }
     }
 
-    // 4b. Procedural Midnight Blizzard Snow Swirls (Single Draw Call)
+    // 4. Setup Campfire & FireSystem in Central Hearth (0, 0, 0)
+    const campfireResult = ProceduralModels.createCampfire();
+    const campfireGroup = campfireResult?.isObject3D ? campfireResult : (campfireResult?.group || campfireResult);
+    const campfireData = campfireResult?.particlesData ? campfireResult : (campfireGroup?.userData?.campfireData || campfireResult);
+    campfireGroup.userData = campfireGroup.userData || {};
+    campfireGroup.userData.campfireData = campfireData;
+
+    const hearthY = this.terrainBuild ? this.terrainBuild.getWalkableSurfaceElevation(0, 0) : 0.05;
+    campfireGroup.position.set(0, hearthY, 0);
+    this.threeScene.add(campfireGroup);
+    this.campfireMesh = campfireGroup;
+
+    if (campfireData) {
+      this.fireSystem = new FireSystem(
+        campfireGroup,
+        campfireData.fireLight,
+        campfireData.particles,
+        this.game.audio,
+        campfireData.instancedFlames,
+        campfireData.particlesData
+      );
+    }
+
+    const campfireEntity = this.ecsWorld.createEntity();
+    this.ecsWorld.addComponent(campfireEntity, 'Transform', Components.Transform(0, hearthY, 0));
+    this.ecsWorld.addComponent(campfireEntity, 'MeshComponent', Components.MeshComponent(campfireGroup));
+    this.ecsWorld.addComponent(campfireEntity, 'Collider', Components.Collider(1.4, 1.0, true));
+    this.ecsWorld.addComponent(
+      campfireEntity,
+      'Interactable',
+      Components.Interactable('Add wood to campfire', 'feed_fire', 3.2)
+    );
+
+    // 4b. Emergency Beacon connected to thermal generator
+    const beaconX = 3.0;
+    const beaconZ = 4.5;
+    const beaconY = this.terrainBuild ? this.terrainBuild.getWalkableSurfaceElevation(beaconX, beaconZ) : 0.05;
+    this.beaconGroup = ProceduralModels.createEmergencyBeacon();
+    this.beaconGroup.position.set(beaconX, beaconY, beaconZ);
+    this.threeScene.add(this.beaconGroup);
+    this.beaconLight = this.beaconGroup.userData.beaconLight;
+
+    const beaconEntity = this.ecsWorld.createEntity();
+    this.ecsWorld.addComponent(beaconEntity, 'Transform', Components.Transform(beaconX, beaconY, beaconZ));
+    this.ecsWorld.addComponent(beaconEntity, 'MeshComponent', Components.MeshComponent(this.beaconGroup));
+    this.ecsWorld.addComponent(beaconEntity, 'Collider', Components.Collider(0.7, 2.4, true));
+    this.ecsWorld.addComponent(
+      beaconEntity,
+      'Interactable',
+      Components.Interactable('Inspect beacon connection', 'inspect_beacon_power', 3.0)
+    );
+
+    // 4c. Procedural Midnight Blizzard Snow Swirls (Single Draw Call)
     this.blizzardEmitter = ParticleFactory.createBlizzardSwirl({ x: 0, y: 0, z: 0 }, 28, 160);
     this.threeScene.add(this.blizzardEmitter.mesh);
 
-    const beaconData = mapResult.specialEntities.get('emergency_beacon');
-    if (beaconData && beaconData.mesh) {
-      this.beaconLight = beaconData.mesh.userData.beaconLight;
-    }
-
     // 5. Connect emergency power cable from campfire generator to beacon
-    if (this.campfireMesh && beaconData && beaconData.mesh) {
-      const cableCurve = new THREE.LineCurve3(
-        new THREE.Vector3(this.campfireMesh.position.x, 0.08, this.campfireMesh.position.z),
-        new THREE.Vector3(beaconData.mesh.position.x, 0.12, beaconData.mesh.position.z)
-      );
-      const cableGeo = new THREE.TubeGeometry(cableCurve, 12, 0.04, 6, false);
-      const cableMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
-      const cableMesh = new THREE.Mesh(cableGeo, cableMat);
-      this.threeScene.add(cableMesh);
-    }
+    const cableCurve = new THREE.LineCurve3(
+      new THREE.Vector3(0, hearthY + 0.03, 0),
+      new THREE.Vector3(beaconX, beaconY + 0.07, beaconZ)
+    );
+    const cableGeo = new THREE.TubeGeometry(cableCurve, 12, 0.04, 6, false);
+    const cableMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+    this.cableMesh = new THREE.Mesh(cableGeo, cableMat);
+    this.threeScene.add(this.cableMesh);
 
     // 6. Ground Highlight Reticle for interactions
     const ringGeo = new THREE.RingGeometry(0.55, 0.7, 24);
@@ -149,8 +195,11 @@ export class SceneTheLastFire extends BaseScene {
     const player = this.ecsWorld.createEntity();
     this.playerId = player;
 
-    const spawn = mapResult.playerSpawn || { x: 0, y: 0, z: 4 };
-    const transform = Components.Transform(spawn.x, 0, spawn.z);
+    const spawnX = 0;
+    const spawnZ = 3.2;
+    const spawnY = this.terrainBuild ? this.terrainBuild.getWalkableSurfaceElevation(spawnX, spawnZ) : 0.05;
+    const spawn = { x: spawnX, y: spawnY, z: spawnZ };
+    const transform = Components.Transform(spawn.x, spawn.y, spawn.z);
     transform.facingAngle = 0;
     this.ecsWorld.addComponent(player, 'Transform', transform);
     this.ecsWorld.addComponent(player, 'Velocity', Components.Velocity());
@@ -181,9 +230,13 @@ export class SceneTheLastFire extends BaseScene {
     this.camera.add(playerChestLight);
     this.threeScene.add(this.camera);
 
-    // 8. Systems
-    this.ecsWorld.addSystem(new MovementSystem(this.game.audio));
-    this.ecsWorld.addSystem(new CollisionSystem(32));
+    // 8. Systems (Full 220m playable roaming boundary; zero-lag slope adherence)
+    this.ecsWorld.addSystem(
+      new MovementSystem(this.game.audio, (x, z) =>
+        this.terrainBuild.getWalkableSurfaceElevation(x, z)
+      )
+    );
+    this.ecsWorld.addSystem(new CollisionSystem(105));
 
     this.renderSystem = new RenderSystem(this.game.renderer, this.threeScene, this.camera);
     this.renderSystem.setCameraMode('birds-eye');
@@ -226,6 +279,12 @@ export class SceneTheLastFire extends BaseScene {
     const playerInput = this.ecsWorld.getComponent(this.playerId, 'PlayerInput');
     if (playerInput && this.game.input) {
       this.game.input.updatePlayerInput(playerInput);
+    }
+
+    // 4. Terrain Height Following (Instant ground adherence on snowdrifts and ridges)
+    const pTransform = this.ecsWorld.getComponent(this.playerId, 'Transform');
+    if (pTransform && this.terrainBuild && typeof this.terrainBuild.getWalkableSurfaceElevation === 'function') {
+      pTransform.position.y = this.terrainBuild.getWalkableSurfaceElevation(pTransform.position.x, pTransform.position.z);
     }
 
     this.handleInteractions(playerInput);
@@ -282,7 +341,7 @@ export class SceneTheLastFire extends BaseScene {
       const { id, interactable, position } = bestCandidate;
 
       if (this.highlightRing) {
-        this.highlightRing.position.set(position.x, 0.05, position.z);
+        this.highlightRing.position.set(position.x, position.y + 0.03, position.z);
         const pulse = 0.65 + Math.sin(this.time * 6.0) * 0.25;
         this.highlightRing.material.opacity = pulse;
       }
@@ -302,7 +361,7 @@ export class SceneTheLastFire extends BaseScene {
       this.game.ui.setPrompt(promptText);
 
       if (playerInput.interact) {
-        if (interactable.actionType === 'pickup_log') {
+        if (interactable.actionType === 'pickup_log' || interactable.actionType === 'salvage_wood') {
           const inv = this.game.gameState.inventory;
           if (inv.wood < inv.maxWood) {
             this.game.gameState.addWood(1);
@@ -378,6 +437,24 @@ export class SceneTheLastFire extends BaseScene {
     if (this.fireSystem) {
       this.fireSystem.dispose();
       this.fireSystem = null;
+    }
+    if (this.terrainBuild && this.terrainBuild.group) {
+      this.threeScene.remove(this.terrainBuild.group);
+      this.terrainBuild = null;
+    }
+    if (this.cableMesh) {
+      this.threeScene.remove(this.cableMesh);
+      if (this.cableMesh.geometry) this.cableMesh.geometry.dispose();
+      if (this.cableMesh.material) this.cableMesh.material.dispose();
+      this.cableMesh = null;
+    }
+    if (this.campfireMesh) {
+      this.threeScene.remove(this.campfireMesh);
+      this.campfireMesh = null;
+    }
+    if (this.beaconGroup) {
+      this.threeScene.remove(this.beaconGroup);
+      this.beaconGroup = null;
     }
     this.beaconLight = null;
     this.highlightRing = null;

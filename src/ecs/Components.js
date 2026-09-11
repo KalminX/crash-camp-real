@@ -42,11 +42,18 @@ export const Components = {
     isStatic,
   }),
 
-  Interactable: (prompt = 'Interact', actionType = 'pickup_log', maxDistance = 3.2) => ({
-    prompt,
-    actionType,
-    maxDistance,
-  }),
+  Interactable: (prompt = 'Interact', actionType = 'pickup_log', maxDistance = 3.2) => {
+    if (typeof actionType === 'number' && typeof maxDistance === 'string') {
+      const temp = actionType;
+      actionType = maxDistance;
+      maxDistance = temp;
+    }
+    return {
+      prompt,
+      actionType,
+      maxDistance,
+    };
+  },
 
   Pickup: (resourceType = 'wood', amount = 1) => ({
     resourceType,

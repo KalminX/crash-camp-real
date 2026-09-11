@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { BaseScene } from '../../BaseScene.js';
 import { ProceduralModels } from '../../../world/ProceduralModels.js';
 import { AirplaneLoader } from '../../../world/AirplaneLoader.js';
+import { ProceduralTerrain } from '../../../world/ProceduralTerrain.js';
+import { WorldSeed } from '../../../world/WorldSeed.js';
 import { ParticleFactory, InstancedParticleEmitter } from '../../../world/ParticleSystem.js';
 
 /**
@@ -10,13 +12,18 @@ import { ParticleFactory, InstancedParticleEmitter } from '../../../world/Partic
  * Narrative:
  * Flight 402 battles through a sub-zero storm over the frozen mountain range.
  * Turbulence rattles the airframe, lightning illuminates the cloud deck, and a sudden
- * engine failure forces a catastrophic descent into the snow below.
+ * left turbine blowout forces a catastrophic plunge into the mountain valley below.
+ * The aircraft plummets directly toward the pristine alpine forest clearing (the exact land
+ * of Scene 1 before the crash), shearing through the pine canopy and slamming into the snow
+ * before cutting to black.
  *
- * Mechanics:
- * - Controls are non-interactive (cinematic automated camera).
- * - High-speed procedural cloud & snow particle stream.
- * - Dynamic lightning flashes and left-engine flameout sparks.
- * - Auto-transitions to Scene 1 (The Crash) or skips via [SPACE].
+ * Features:
+ * - GLB airplane model with authentic materials, strobe and navigation lights.
+ * - Dynamic real-time LeftEngine tracking: sparks stream out along the true slipstream
+ *   vector as the burning aircraft banks, rolls, and plummets.
+ * - Pristine version of Scene 1's land (unbroken snow & forest, no crash wreckage).
+ * - Dramatic chase camera tracking the plane hurtling directly into the pristine valley.
+ * - Tree canopy shearing climax, violent ground impact jolt, and dark transition into Scene 1.
  */
 export class SceneIntroFlight extends BaseScene {
   constructor(game) {
@@ -37,8 +44,13 @@ export class SceneIntroFlight extends BaseScene {
     this.needleEmitter = null;
     this.sparkEmitter = null;
 
-    // LeftEngine failure spark position (calculated from GLB model)
+    // LeftEngine local offset and real-time world tracking
     this.leftEnginePos = new THREE.Vector3(-2.04, 0.69, -0.76);
+    this.currentEngineWorldPos = new THREE.Vector3();
+    this.currentEngineWorldDir = new THREE.Vector3(0, 0, 1);
+
+    // Pristine version of Scene 1's terrain below flight path (NO crash site model)
+    this.pristineTerrainGroup = null;
 
     // Lighting
     this.lightningLight = null;
@@ -47,6 +59,8 @@ export class SceneIntroFlight extends BaseScene {
     // Sequence flags
     this.alarmPlayed = false;
     this.hasFailed = false;
+    this.hasHitTrees = false;
+    this.hasHitGround = false;
     this.isTransitioning = false;
 
     // Skip handler
@@ -56,31 +70,45 @@ export class SceneIntroFlight extends BaseScene {
   async enter() {
     await super.enter();
 
-    // 1. Storm Sky & Dense Cloud Fog
-    this.threeScene.background = new THREE.Color(0x070a10);
-    this.threeScene.fog = new THREE.Fog(0x070a10, 25, 140);
+    // 1. Storm Sky & Cloud Fog
+    this.threeScene.background = new THREE.Color(0x0a0e18);
+    this.threeScene.fog = new THREE.Fog(0x0a0e18, 25, 140);
 
     // 2. Cinematic Lighting
-    const ambientLight = new THREE.AmbientLight(0x283548, 1.2);
+    const ambientLight = new THREE.AmbientLight(0x384860, 1.25);
     this.threeScene.add(ambientLight);
 
-    const stormLight = new THREE.DirectionalLight(0x5a759e, 1.4);
-    stormLight.position.set(-20, 25, 15);
+    const stormLight = new THREE.DirectionalLight(0x6a86b0, 1.5);
+    stormLight.position.set(-20, 30, 15);
     this.threeScene.add(stormLight);
 
     // Lightning point light
-    this.lightningLight = new THREE.PointLight(0xdbeafe, 0, 300);
-    this.lightningLight.position.set(0, 40, -30);
+    this.lightningLight = new THREE.PointLight(0xdbeafe, 0, 320);
+    this.lightningLight.position.set(0, 45, -25);
     this.threeScene.add(this.lightningLight);
 
-    // 3. High-Speed Cloud & Snow Stream Particles (Giving illusion of forward speed)
+    // 3. High-Speed Cloud & Snow Stream Particles
     this.createSpeedStreams();
 
-    // 4. Setup Camera initial framing (drifting in the storm)
+    // 4. Pristine Version of Land One (Scene 1) WITHOUT the Crash Site!
+    // Exact topological twin with fresh untouched snow and standing pine trees
+    const worldSeed = WorldSeed.getSeed();
+    const terrain = new ProceduralTerrain({
+      seed: worldSeed,
+      theme: 'pristine-crash-valley',
+      size: 260,
+    });
+    const terrainBuild = terrain.build();
+    this.pristineTerrainGroup = terrainBuild.group;
+    // Positioned on the valley floor below cruising altitude
+    this.pristineTerrainGroup.position.set(0, -31.5, -16.0);
+    this.threeScene.add(this.pristineTerrainGroup);
+
+    // 5. Setup Camera initial framing (drifting in the storm)
     this.camera.position.set(-16, 4.0, -18);
     this.camera.lookAt(0, 0, 0);
 
-    // 5. Load Real Airplane GLB Model
+    // 7. Load Real Airplane GLB Model
     try {
       this.airplaneData = await this.airplaneLoader.load('/models/airplane.glb');
       this.airplane = this.airplaneData.model;
@@ -99,18 +127,20 @@ export class SceneIntroFlight extends BaseScene {
     // Airplane remains hidden in the storm clouds during prologue story briefing
     this.airplane.visible = false;
 
-    // 6. Create Prologue Story Run-Through Card in DOM
+    // 8. Create Prologue Story Run-Through Card in DOM
     this.createStoryCard();
 
-    // 7. Skip listener [SPACE] or Click
-    this.skipListener = (e) => {
-      if (e.code === 'Space' || e.key === ' ') {
-        e.preventDefault();
-        this.handleUserSkip();
-      }
-    };
-    window.addEventListener('keydown', this.skipListener);
-    this.addCleanup(() => window.removeEventListener('keydown', this.skipListener));
+    // 9. Skip listener [SPACE] or Click
+    if (typeof window !== 'undefined') {
+      this.skipListener = (e) => {
+        if (e.code === 'Space' || e.key === ' ') {
+          e.preventDefault();
+          this.handleUserSkip();
+        }
+      };
+      window.addEventListener('keydown', this.skipListener);
+      this.addCleanup(() => window.removeEventListener('keydown', this.skipListener));
+    }
   }
 
   createStoryCard() {
@@ -123,7 +153,7 @@ export class SceneIntroFlight extends BaseScene {
       '<div class="story-line main">FLIGHT 402 &bull; CATALINA CIVIL & CARGO TRANSPORT</div>',
       '<div class="story-line sub">NORTHERN MOUNTAIN RIDGE &bull; 18,500 FT &bull; SUB-ZERO BLIZZARD</div>',
       '<div class="story-line warning">WARNING: RADAR LOST &bull; HYDRAULIC PRESSURE FAILING</div>',
-      '<div class="story-skip-hint">PRESS [SPACE] OR TAP TO ADVANCE</div>'
+      '<div class="story-skip-hint">PRESS [SPACE] OR TAP TO ADVANCE</div>',
     ].join('');
 
     card.addEventListener('pointerdown', (e) => {
@@ -177,27 +207,31 @@ export class SceneIntroFlight extends BaseScene {
   }
 
   createEngineFailureSparks() {
-    const sparkGeo = new THREE.SphereGeometry(0.08, 4, 4);
+    const sparkGeo = new THREE.SphereGeometry(0.09, 4, 4);
     const sparkMat = new THREE.MeshBasicMaterial({
       color: 0xff6622,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
 
-    const ep = this.leftEnginePos;
-
+    // High-performance instanced spark emitter dynamically tracking moving engine nozzle
     this.sparkEmitter = new InstancedParticleEmitter({
-      count: 32,
+      count: 42,
       geometry: sparkGeo,
       material: sparkMat,
       onInit: (p) => {
-        p.x = ep.x;
-        p.y = ep.y;
-        p.z = ep.z;
-        p.vx = (Math.random() - 0.5) * 2.5;
-        p.vy = (Math.random() - 0.5) * 2.5;
-        p.vz = 18 + Math.random() * 28;
-        p.maxLife = 0.45;
+        p.x = this.currentEngineWorldPos.x;
+        p.y = this.currentEngineWorldPos.y;
+        p.z = this.currentEngineWorldPos.z;
+
+        // Eject backward along real-time airplane slipstream vector
+        const dir = this.currentEngineWorldDir;
+        const speed = 22 + Math.random() * 26;
+        p.vx = dir.x * speed + (Math.random() - 0.5) * 3.5;
+        p.vy = dir.y * speed + (Math.random() - 0.5) * 3.5;
+        p.vz = dir.z * speed + (Math.random() - 0.5) * 3.5;
+
+        p.maxLife = 0.42;
         p.life = Math.random() * p.maxLife;
         p.scale = 1.0;
       },
@@ -211,12 +245,16 @@ export class SceneIntroFlight extends BaseScene {
       },
       onReset: (p) => {
         p.life = 0;
-        p.x = ep.x + (Math.random() - 0.5) * 0.3;
-        p.y = ep.y + (Math.random() - 0.5) * 0.3;
-        p.z = ep.z;
-        p.vx = (Math.random() - 0.5) * 2.5;
-        p.vy = (Math.random() - 0.5) * 2.5;
-        p.vz = 18 + Math.random() * 28;
+        // Spawn precisely at real-time world position of tumbling engine
+        p.x = this.currentEngineWorldPos.x + (Math.random() - 0.5) * 0.35;
+        p.y = this.currentEngineWorldPos.y + (Math.random() - 0.5) * 0.35;
+        p.z = this.currentEngineWorldPos.z + (Math.random() - 0.5) * 0.35;
+
+        const dir = this.currentEngineWorldDir;
+        const speed = 22 + Math.random() * 26;
+        p.vx = dir.x * speed + (Math.random() - 0.5) * 3.5;
+        p.vy = dir.y * speed + (Math.random() - 0.5) * 3.5;
+        p.vz = dir.z * speed + (Math.random() - 0.5) * 3.5;
       },
     });
 
@@ -236,13 +274,13 @@ export class SceneIntroFlight extends BaseScene {
       this.endStoryPhase();
     }
 
-    // 2. Tail Strobe & Engine Pulse
+    // 3. Tail Strobe & Engine Pulse
     if (this.airplaneData && this.airplaneData.strobeLight) {
       const strobe = (this.time * 2.2) % 1.0;
       this.airplaneData.strobeLight.intensity = strobe < 0.12 ? 4.5 : 0.0;
     }
 
-    // 3. Lightning Strikes
+    // 4. Lightning Strikes
     if (this.time > this.nextLightningTime) {
       this.triggerLightning();
       this.nextLightningTime = this.time + 3.2 + Math.random() * 2.5;
@@ -253,7 +291,7 @@ export class SceneIntroFlight extends BaseScene {
       this.lightningLight.intensity = Math.max(0, this.lightningLight.intensity - deltaTime * 16.0);
     }
 
-    // 4. Airplane Turbulence & Flight Physics
+    // 5. Airplane Turbulence, Flight Physics & Crash Descent into Crash Site
     if (this.airplane && !this.storyPhase) {
       const flightTime = this.time - this.planeArrivalTime;
 
@@ -262,8 +300,6 @@ export class SceneIntroFlight extends BaseScene {
         const surge = flightTime / 1.6;
         this.airplane.position.z = THREE.MathUtils.lerp(16, 0, surge);
         this.airplane.position.y = THREE.MathUtils.lerp(-1.0, 0, surge);
-      } else {
-        this.airplane.position.z = 0;
       }
 
       const turbulencePitch = Math.sin(this.time * 6.5) * 0.04 + Math.sin(this.time * 14.0) * 0.015;
@@ -275,35 +311,100 @@ export class SceneIntroFlight extends BaseScene {
         this.hasFailed = true;
         this.createEngineFailureSparks();
         if (this.game && this.game.ui) {
-          this.game.ui.showToast('WARNING: LEFT TURBINE BREACH &bull; HYDRAULIC PRESSURE LOSS');
+          this.game.ui.showToast('WARNING: LEFT TURBINE BLOWOUT &bull; HYDRAULIC PRESSURE LOSS');
         }
       }
 
-      // If engine has failed, plane banks steeply and pitches down
+      // Catastrophic plunge trajectory straight toward the crash site at (0, -31.5, -16)
       if (this.hasFailed) {
-        const failProgress = Math.min(1.0, (flightTime - 3.8) / 3.4);
-        this.airplane.rotation.x = turbulencePitch + failProgress * 0.45; // pitch nose down
-        this.airplane.rotation.z = turbulenceRoll + failProgress * 0.65;  // bank hard left
-        this.airplane.position.y -= failProgress * 12.0 * deltaTime;
+        const failProgress = Math.min(1.0, (flightTime - 3.8) / 3.8);
+
+        // Aircraft pitches steeply nose-down and banks hard left
+        this.airplane.rotation.x = turbulencePitch + failProgress * 0.62; // ~35° pitch down
+        this.airplane.rotation.z = turbulenceRoll + failProgress * 0.78;  // ~44° left bank
+        this.airplane.rotation.y = turbulenceYaw - failProgress * 0.25;
+
+        // Plunge downwards accelerating toward the crash site clearing (y = 0 down to -31.0m)
+        const fallSpeed = 5.8 + failProgress * 15.2;
+        this.airplane.position.y -= fallSpeed * deltaTime;
+        // Glide forward into the crash trench (z from 0 toward -16m)
+        this.airplane.position.z = THREE.MathUtils.lerp(0, -16.0, failProgress);
+        this.airplane.position.x = Math.sin(failProgress * Math.PI) * -1.8;
+
+        // Dynamically thin the cloud fog as aircraft descends, revealing crash site & forest clearing below
+        if (this.airplane.position.y < -5.0) {
+          const depthProgress = Math.min(1.0, (-this.airplane.position.y - 5.0) / 22.0);
+          this.threeScene.fog.far = THREE.MathUtils.lerp(140, 240, depthProgress);
+        }
+
+        // Treetop level impact & canopy shearing at y <= -24m
+        if (this.airplane.position.y <= -24.0 && !this.hasHitTrees) {
+          this.hasHitTrees = true;
+          if (this.game && this.game.ui) {
+            this.game.ui.showToast('IMPACT IMMINENT &bull; BRACE FOR IMPACT!');
+          }
+        }
+
+        // Ground impact into crash site trench at y <= -29.5m
+        if (this.airplane.position.y <= -29.5 && !this.hasHitGround) {
+          this.hasHitGround = true;
+          if (this.game && this.game.ui) {
+            this.game.ui.showToast('CRASH SITE IMPACT &bull; TELEMETRY LOST');
+          }
+        }
       } else {
         this.airplane.rotation.set(turbulencePitch, turbulenceYaw, turbulenceRoll);
       }
 
-      // 6. Dynamic Camera Orbit & Shake
-      const camAngle = -Math.PI * 0.65 + flightTime * 0.09;
-      const camDist = 18.5 - Math.min(3.5, flightTime * 0.35);
-      const shakeX = (Math.random() - 0.5) * (this.hasFailed ? 0.35 : 0.10);
-      const shakeY = (Math.random() - 0.5) * (this.hasFailed ? 0.35 : 0.10);
+      // Dynamic real-time LeftEngine tracking in world space
+      this.currentEngineWorldPos.copy(this.leftEnginePos)
+        .applyEuler(this.airplane.rotation)
+        .add(this.airplane.position);
 
-      this.camera.position.set(
-        Math.sin(camAngle) * camDist + shakeX,
-        3.0 + Math.sin(flightTime * 0.6) * 1.2 + shakeY,
-        Math.cos(camAngle) * camDist
-      );
-      this.camera.lookAt(0, -flightTime * 0.5, 0);
+      // Real-time backward slipstream direction vector
+      this.currentEngineWorldDir.set(0, 0, 1).applyEuler(this.airplane.rotation);
 
-      // 7. Auto-transition at end of flight descent (~8.2 seconds of flight)
-      if (flightTime > 8.2 && !this.isTransitioning) {
+      // Dynamic Camera: Cinematic Chase Framing Looking Down Toward Crash Site
+      let shakeIntensity = 0.08;
+      if (this.hasHitGround) {
+        shakeIntensity = 1.35; // Violent crash impact shudder
+      } else if (this.hasHitTrees) {
+        shakeIntensity = 0.75; // Tree canopy shearing vibration
+      } else if (this.hasFailed) {
+        shakeIntensity = 0.38; // Emergency dive turbulence
+      }
+
+      const shakeX = (Math.random() - 0.5) * shakeIntensity;
+      const shakeY = (Math.random() - 0.5) * shakeIntensity;
+
+      if (this.hasFailed) {
+        // High chase perspective: positioned behind and above, looking down over the wings
+        // directly at the crash site rushing up to meet the plane!
+        this.camera.position.set(
+          this.airplane.position.x - 10.0 + shakeX,
+          this.airplane.position.y + 6.8 + shakeY,
+          this.airplane.position.z + 17.0
+        );
+        // Look down along the plane's dive trajectory into the crash site trench
+        this.camera.lookAt(
+          this.airplane.position.x * 0.4,
+          this.airplane.position.y - 3.5,
+          this.airplane.position.z - 12.0
+        );
+      } else {
+        // Cruising orbit camera
+        const camAngle = -Math.PI * 0.65 + flightTime * 0.09;
+        const camDist = 18.5 - Math.min(4.0, flightTime * 0.4);
+        this.camera.position.set(
+          Math.sin(camAngle) * camDist + shakeX,
+          3.2 + Math.sin(flightTime * 0.6) * 1.0 + shakeY,
+          Math.cos(camAngle) * camDist
+        );
+        this.camera.lookAt(0, 0, 0);
+      }
+
+      // Transition precisely as the airplane impacts the crash site floor (y <= -30.8m or flightTime > 7.9s)
+      if ((this.airplane.position.y <= -30.8 || flightTime > 7.9) && !this.isTransitioning) {
         this.finishIntro();
       }
     } else {
@@ -316,7 +417,7 @@ export class SceneIntroFlight extends BaseScene {
       this.camera.lookAt(0, 0, 0);
     }
 
-    // 5. Update engine failure sparks (InstancedMesh)
+    // 6. Update engine failure sparks (InstancedMesh)
     if (this.sparkEmitter) {
       this.sparkEmitter.update(deltaTime, this.time);
     }
@@ -350,7 +451,7 @@ export class SceneIntroFlight extends BaseScene {
   }
 
   exit() {
-    if (this.skipListener) {
+    if (this.skipListener && typeof window !== 'undefined') {
       window.removeEventListener('keydown', this.skipListener);
     }
     if (this.storyCardEl && this.storyCardEl.parentNode) {
@@ -372,6 +473,10 @@ export class SceneIntroFlight extends BaseScene {
     if (this.sparkEmitter) {
       this.sparkEmitter.dispose();
       this.sparkEmitter = null;
+    }
+    if (this.pristineTerrainGroup) {
+      this.threeScene.remove(this.pristineTerrainGroup);
+      this.pristineTerrainGroup = null;
     }
     this.lightningLight = null;
     this.airplane = null;

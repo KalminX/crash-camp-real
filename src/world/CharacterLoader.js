@@ -32,9 +32,14 @@ export class CharacterLoader {
         (gltf) => {
           const model = gltf.scene;
 
+          // Wrap in a root group to give boot tread clean clearance (+0.035m) on terrain slopes
+          const wrapperGroup = new THREE.Group();
+          wrapperGroup.name = 'CharacterRoot';
+
           // Scale model to match survival world scale (~1.75m height)
           model.scale.set(1.18, 1.18, 1.18);
-          model.position.set(0, 0.01, 0); // Keep feet resting cleanly on top of flat ground
+          model.position.set(0, 0.035, 0); // Keep feet resting cleanly on top of snow/terrain polygons
+          wrapperGroup.add(model);
 
           // Configure shadows & enhance material response
           model.traverse((child) => {
@@ -134,7 +139,8 @@ export class CharacterLoader {
           }
 
           const result = {
-            model,
+            model: wrapperGroup,
+            innerModel: model,
             mixer,
             actions,
             playAnimation,

@@ -81,9 +81,11 @@ export class MapLoader {
 
     this.registerModel('campfire', (def) => {
       const data = ProceduralModels.createCampfire();
-      data.group.userData.campfireData = data;
+      const mesh = data?.isObject3D ? data : (data?.group || data);
+      mesh.userData = mesh.userData || {};
+      mesh.userData.campfireData = data?.userData?.campfireData || data;
       return {
-        mesh: data.group,
+        mesh,
         collider: def.collider,
         interactable: def.interactable,
       };

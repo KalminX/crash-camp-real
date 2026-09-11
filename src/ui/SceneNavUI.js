@@ -4,6 +4,8 @@
  * and a standalone, noise-free, compact Developer Toolbar dock.
  */
 
+import { WorldSeed } from '../world/WorldSeed.js';
+
 const ICONS = {
   heart: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
   wood: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>`,
@@ -86,6 +88,7 @@ export class SceneNavUI {
         <div class="dev-header-left">
           <span class="dev-drawer-title">DEV CONSOLE</span>
           <span class="dev-fps dev-fps-good" id="dev-fps-display">60 FPS • 16.6ms</span>
+          <span class="dev-seed-tag" id="dev-seed-display" style="font-size: 10px; color: #9cb0c6; font-family: monospace; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 2px; border: 1px solid #38444f;">SEED: ${WorldSeed.getSeed()}</span>
         </div>
         <div class="dev-header-right" style="display: flex; align-items: center; gap: 8px;">
           <span class="dev-url-text" id="dev-url-display">?scene=...</span>
@@ -99,12 +102,13 @@ export class SceneNavUI {
       </div>
 
       <div class="dev-drawer-section">
-        <div class="dev-section-title">SURVIVAL CHEATS</div>
+        <div class="dev-section-title">SURVIVAL CHEATS & WORLD SEED</div>
         <div class="dev-cheats-grid">
           <button type="button" class="dev-btn" id="cheat-wood" title="Fill wood to max">+WOOD (5/5)</button>
           <button type="button" class="dev-btn" id="cheat-food" title="Fill food to max">+FOOD (5/5)</button>
           <button type="button" class="dev-btn" id="cheat-heal" title="Restore 100% health">HEAL 100%</button>
           <button type="button" class="dev-btn" id="cheat-reset" title="Empty inventory">RESET INV</button>
+          <button type="button" class="dev-btn" id="cheat-reroll-seed" title="Reroll procedural world seed and reload">REROLL SEED</button>
           <button type="button" class="dev-btn" id="cheat-wipe" title="Wipe LocalStorage & IndexedDB">WIPE DATA</button>
           <button type="button" class="dev-btn" id="cheat-view" title="Toggle Camera View">VIEW CAM</button>
         </div>
@@ -147,11 +151,27 @@ export class SceneNavUI {
       this.showToast('Cheat: Inventory cleared');
     });
 
+    bar.querySelector('#cheat-reroll-seed')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
+      const newSeed = WorldSeed.regenerateSeed();
+      const seedEl = bar.querySelector('#dev-seed-display');
+      if (seedEl) seedEl.textContent = `SEED: ${newSeed}`;
+      this.showToast(`World Seed rerolled: ${newSeed}`);
+      if (this.game.sceneManager && this.game.sceneManager.currentScene) {
+        const currentId = this.game.sceneManager.currentScene.id;
+        this.game.sceneManager.goTo(currentId, true, true);
+      }
+    });
+
     bar.querySelector('#cheat-wipe')?.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (navigator.vibrate) navigator.vibrate(15);
       await this.game.gameState.wipeStorage();
-      this.showToast('Storage wiped (IndexedDB & LocalStorage cleared)');
+      const freshSeed = WorldSeed.regenerateSeed();
+      const seedEl = bar.querySelector('#dev-seed-display');
+      if (seedEl) seedEl.textContent = `SEED: ${freshSeed}`;
+      this.showToast('Storage wiped & World Seed reset');
       if (this.lastSceneData) {
         this.render(this.lastSceneData);
       }
@@ -181,6 +201,11 @@ export class SceneNavUI {
 
     if (urlDisplay) {
       urlDisplay.textContent = `?scene=${currentSceneId}`;
+    }
+
+    const seedEl = this.devToolbarEl.querySelector('#dev-seed-display');
+    if (seedEl) {
+      seedEl.textContent = `SEED: ${WorldSeed.getSeed()}`;
     }
 
     if (group) {
