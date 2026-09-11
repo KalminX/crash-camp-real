@@ -61,6 +61,32 @@ export class SceneNavUI {
         this.toggleDevPanel();
       }
     });
+
+    // Network connectivity monitoring (100% offline support)
+    this.isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      this.updateNetworkStatus();
+      this.showToast('Online: Connection restored');
+    });
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      this.updateNetworkStatus();
+      this.showToast('Offline Mode: Running from local cache');
+    });
+
+    // PWA Install prompt listener
+    this.deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredInstallPrompt = e;
+      this.updateInstallButtonVisibility();
+    });
+    window.addEventListener('appinstalled', () => {
+      this.deferredInstallPrompt = null;
+      this.updateInstallButtonVisibility();
+      this.showToast('Crash Camp installed successfully!');
+    });
   }
 
   createDevToolbar() {
@@ -89,8 +115,10 @@ export class SceneNavUI {
           <span class="dev-drawer-title">DEV CONSOLE</span>
           <span class="dev-fps dev-fps-good" id="dev-fps-display">60 FPS • 16.6ms</span>
           <span class="dev-seed-tag" id="dev-seed-display" style="font-size: 10px; color: #9cb0c6; font-family: monospace; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 2px; border: 1px solid #38444f;">SEED: ${WorldSeed.getSeed()}</span>
+          <span class="dev-network-tag" id="dev-network-display" style="font-size: 9.5px; font-family: monospace; padding: 1px 5px; border-radius: 2px; border: 1px solid rgba(74, 222, 128, 0.3); background: rgba(0,0,0,0.3); color: #86efac;">ONLINE</span>
         </div>
         <div class="dev-header-right" style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="dev-btn" id="install-pwa-btn" style="display: none; padding: 2px 7px; font-size: 9px; border-color: #38bdf8; color: #38bdf8; background: rgba(14, 165, 233, 0.15);" title="Install Crash Camp as Desktop or Mobile App">INSTALL APP</button>
           <span class="dev-url-text" id="dev-url-display">?scene=...</span>
           <button type="button" class="dev-close-btn" id="dev-close-btn" title="Close Dev Toolbar [~]">✕</button>
         </div>
@@ -228,11 +256,58 @@ export class SceneNavUI {
     updatePerfButtons();
     this.updatePerfButtons = updatePerfButtons;
 
+    // Connect PWA install button
+    bar.querySelector('#install-pwa-btn')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!this.deferredInstallPrompt) {
+        this.showToast('App is already installed or browser does not support install prompt');
+        return;
+      }
+      this.deferredInstallPrompt.prompt();
+      try {
+        const { outcome } = await this.deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+          this.showToast('Installing Crash Camp...');
+        }
+      } catch (_) {}
+      this.deferredInstallPrompt = null;
+      this.updateInstallButtonVisibility();
+    });
+
+    this.updateInstallButtonVisibility();
+    this.updateNetworkStatus();
+
     bar.querySelector('#dev-close-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (navigator.vibrate) navigator.vibrate(10);
       this.toggleDevPanel(false);
     });
+  }
+
+  updateNetworkStatus() {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    if (this.devToolbarEl) {
+      const devNet = this.devToolbarEl.querySelector('#dev-network-display');
+      if (devNet) {
+        devNet.textContent = isOnline ? 'ONLINE' : 'OFFLINE (CACHED)';
+        devNet.style.color = isOnline ? '#86efac' : '#fbbf24';
+        devNet.style.borderColor = isOnline ? 'rgba(74, 222, 128, 0.3)' : 'rgba(245, 158, 11, 0.4)';
+        devNet.style.background = isOnline ? 'rgba(0,0,0,0.3)' : 'rgba(180, 83, 9, 0.25)';
+      }
+    }
+
+    const hudOffline = document.getElementById('hud-offline-badge');
+    if (hudOffline) {
+      hudOffline.style.display = isOnline ? 'none' : 'inline-flex';
+    }
+  }
+
+  updateInstallButtonVisibility() {
+    if (!this.devToolbarEl) return;
+    const btn = this.devToolbarEl.querySelector('#install-pwa-btn');
+    if (btn) {
+      btn.style.display = this.deferredInstallPrompt ? 'inline-block' : 'none';
+    }
   }
 
   updateDevToolbar(data) {
@@ -317,6 +392,7 @@ export class SceneNavUI {
           <div class="panel-header-top">
             <span class="panel-tag">${act} &bull; ${actName}</span>
             <div class="panel-header-actions">
+              <span class="hud-offline-badge" id="hud-offline-badge" style="display: none;">OFFLINE</span>
               <span class="hud-fps-badge dev-fps-good" id="hud-fps-badge" title="Real-time Frame Rate">60 FPS</span>
               <button type="button" class="panel-dev-btn ${this.isDevOpen ? 'active' : ''}" id="panel-dev-btn" title="Toggle Developer Toolbar [~]">DEV</button>
               <button type="button" class="panel-view-btn active" id="panel-view-btn" title="Toggle Camera View [V]">BIRD VIEW</button>
@@ -401,6 +477,8 @@ export class SceneNavUI {
         </div>
       </div>
     `;
+
+    this.updateNetworkStatus();
 
     // Connect event handlers
     const collapseBtn = this.container.querySelector('#panel-collapse-btn');

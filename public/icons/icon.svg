@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e2722" />
+      <stop offset="100%" stop-color="#121614" />
+    </linearGradient>
+    <linearGradient id="flameOuter" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#b94a1a" />
+      <stop offset="60%" stop-color="#d96b32" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="flameInner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="70%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#fef08a" />
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGrad)" stroke="#3a4a3e" stroke-width="16" />
+
+  <polygon points="104,352 152,240 200,352" fill="#253528" opacity="0.8" />
+  <polygon points="312,352 360,240 408,352" fill="#253528" opacity="0.8" />
+
+  <line x1="128" y1="392" x2="384" y2="344" stroke="#4a3a2d" stroke-width="38" stroke-linecap="round" />
+  <line x1="128" y1="344" x2="384" y2="392" stroke="#594635" stroke-width="38" stroke-linecap="round" />
+  <line x1="160" y1="408" x2="352" y2="408" stroke="#36291f" stroke-width="26" stroke-linecap="round" />
+
+  <path d="M256 112 C280 176, 360 216, 344 304 C336 360, 288 392, 256 392 C224 392, 176 360, 168 304 C152 224, 232 176, 256 112 Z" fill="url(#flameOuter)" />
+  <path d="M256 184 C272 232, 312 264, 304 328 C296 368, 272 384, 256 384 C240 384, 216 368, 208 328 C200 272, 240 232, 256 184 Z" fill="url(#flameInner)" />
+
+  <circle cx="288" cy="96" r="12" fill="#fde047" opacity="0.9" />
+  <circle cx="216" cy="128" r="10" fill="#fb923c" opacity="0.8" />
+  <circle cx="256" cy="64" r="8" fill="#fef08a" opacity="0.75" />
+</svg>
