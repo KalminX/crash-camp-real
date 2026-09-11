@@ -16,10 +16,14 @@ export class Game {
   constructor(containerId = 'game-container') {
     this.container = document.getElementById(containerId) || document.body;
 
-    // 1. Central WebGL Renderer (Shared across all scenes - Optimized 1.0x pixel ratio for maximum FPS)
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', precision: 'mediump' });
+    // 1. Central WebGL Renderer (High-precision shaders & dynamic Retina pixel ratio for crisp mobile display)
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+      precision: 'highp',
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -50,15 +54,21 @@ export class Game {
   }
 
   setupListeners() {
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
       this.renderer.setSize(width, height);
 
       const scene = this.sceneManager.getCurrentScene();
       if (scene && typeof scene.onResize === 'function') {
         scene.onResize(width, height);
       }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(handleResize, 100);
     });
 
     // Initialize audio on first canvas interaction (without capturing mouse)

@@ -11,13 +11,16 @@ export class BaseScene {
     this.game = game;
     this.id = id;
 
-    const aspect =
-      typeof window !== 'undefined' && window.innerWidth && window.innerHeight
-        ? window.innerWidth / window.innerHeight
-        : 16 / 9;
+    const hasWindow =
+      typeof window !== 'undefined' && window.innerWidth && window.innerHeight;
+    const aspect = hasWindow ? window.innerWidth / window.innerHeight : 16 / 9;
+    const initialFov =
+      hasWindow && window.innerWidth < window.innerHeight
+        ? Math.min(85, 75 * (window.innerHeight / window.innerWidth) * 0.65)
+        : 75;
 
     this.threeScene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 180);
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 180);
     this.ecsWorld = new World();
     this.active = false;
     this.cleanups = [];
@@ -107,6 +110,11 @@ export class BaseScene {
   onResize(width, height) {
     if (this.camera) {
       this.camera.aspect = width / height;
+      if (width < height) {
+        this.camera.fov = Math.min(85, 75 * (height / width) * 0.65);
+      } else {
+        this.camera.fov = 75;
+      }
       this.camera.updateProjectionMatrix();
     }
   }
