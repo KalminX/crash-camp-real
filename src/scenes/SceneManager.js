@@ -12,9 +12,46 @@ export class SceneManager {
     this.currentSceneId = null;
     this.isTransitioning = false;
     this.listeners = new Map();
+    this.transitionOverlay = null;
 
+    this.createTransitionOverlay();
     this.setupHistoryListener();
     this.setupGoalAutoTransition();
+  }
+
+  createTransitionOverlay() {
+    if (typeof document === 'undefined') return;
+    let el = document.getElementById('scene-transition-overlay');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'scene-transition-overlay';
+      el.className = 'scene-transition-overlay';
+      document.body.appendChild(el);
+    }
+    this.transitionOverlay = el;
+  }
+
+  /**
+   * Smoothly fades screen to/from dark black during scene transitions.
+   * @param {boolean} toDark - True to fade to black, false to reveal new scene
+   */
+  async fadeTransition(toDark) {
+    if (!this.transitionOverlay) {
+      this.createTransitionOverlay();
+    }
+    if (!this.transitionOverlay) return;
+
+    return new Promise((resolve) => {
+      if (toDark) {
+        this.transitionOverlay.classList.add('active');
+        setTimeout(resolve, 220);
+      } else {
+        setTimeout(() => {
+          this.transitionOverlay.classList.remove('active');
+          setTimeout(resolve, 260);
+        }, 30);
+      }
+    });
   }
 
   setupGoalAutoTransition() {
@@ -142,6 +179,11 @@ export class SceneManager {
     const previousSceneId = this.currentSceneId;
 
     try {
+      // If switching from an existing scene, blend into dark subtle black flash
+      if (this.currentScene) {
+        await this.fadeTransition(true);
+      }
+
       // 1. Exit and deep dispose previous scene
       if (this.currentScene) {
         this.currentScene.exit();
@@ -174,7 +216,12 @@ export class SceneManager {
 
       await nextScene.enter();
 
-      // 4. Update browser URL history
+      // 4. Reveal new scene smoothly from dark blend flash
+      if (previousSceneId) {
+        await this.fadeTransition(false);
+      }
+
+      // 5. Update browser URL history
       if (updateHistory) {
         this.updateUrl(resolvedId, true);
       }

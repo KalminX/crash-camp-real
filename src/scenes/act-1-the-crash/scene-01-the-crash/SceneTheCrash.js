@@ -185,6 +185,20 @@ export class SceneTheCrash extends BaseScene {
     if (this.game.ui) {
       this.game.ui.showToast("Act I: The Crash (Press 'V' or click BIRD VIEW to toggle camera)");
     }
+
+    // Atmospheric wake-up subtitle tag
+    if (typeof document !== 'undefined') {
+      const wakeTag = document.createElement('div');
+      wakeTag.className = 'scene-wakeup-tag';
+      wakeTag.innerHTML = '04:22 AM &bull; CRASH TRENCH &bull; -18°C &bull; SALVAGE RATIONS & POWER BEACON';
+      document.body.appendChild(wakeTag);
+      setTimeout(() => {
+        wakeTag.classList.add('fade-out');
+        setTimeout(() => {
+          if (wakeTag.parentNode) wakeTag.parentNode.removeChild(wakeTag);
+        }, 1000);
+      }, 4200);
+    }
   }
 
   createSmokeAndSparks(bx, by, bz) {

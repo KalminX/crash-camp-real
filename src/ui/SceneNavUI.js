@@ -67,33 +67,57 @@ export class SceneNavUI {
       return;
     }
 
+    // Semi-modal backdrop for mobile drawer dismissal
+    const backdrop = document.createElement('div');
+    backdrop.id = 'dev-backdrop';
+    backdrop.className = 'dev-backdrop';
+    backdrop.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleDevPanel(false);
+    });
+    document.body.appendChild(backdrop);
+    this.devBackdropEl = backdrop;
+
     const bar = document.createElement('div');
     bar.id = 'dev-toolbar';
     bar.className = 'dev-toolbar';
     bar.innerHTML = `
-      <span class="dev-tag">DEV:</span>
-      <span class="dev-fps dev-fps-good" id="dev-fps-display">60 FPS • 16.6ms</span>
-      <span class="dev-sep"></span>
-      <div class="dev-group" id="dev-scenes-group"></div>
-      <span class="dev-sep"></span>
-      <div class="dev-group">
-        <button type="button" class="dev-btn" id="cheat-wood" title="Fill wood to max">+WOOD</button>
-        <button type="button" class="dev-btn" id="cheat-food" title="Fill food to max">+FOOD</button>
-        <button type="button" class="dev-btn" id="cheat-heal" title="Restore 100% health">HEAL</button>
-        <button type="button" class="dev-btn" id="cheat-reset" title="Empty inventory">RESET</button>
-        <button type="button" class="dev-btn" id="cheat-wipe" title="Wipe LocalStorage & IndexedDB">WIPE</button>
+      <div class="dev-header-row">
+        <div class="dev-header-left">
+          <span class="dev-drawer-title">DEV CONSOLE</span>
+          <span class="dev-fps dev-fps-good" id="dev-fps-display">60 FPS • 16.6ms</span>
+        </div>
+        <div class="dev-header-right" style="display: flex; align-items: center; gap: 8px;">
+          <span class="dev-url-text" id="dev-url-display">?scene=...</span>
+          <button type="button" class="dev-close-btn" id="dev-close-btn" title="Close Dev Toolbar [~]">✕</button>
+        </div>
       </div>
-      <span class="dev-sep"></span>
-      <span class="dev-url-text" id="dev-url-display">?scene=...</span>
-      <button type="button" class="dev-close-btn" id="dev-close-btn" title="Close Dev Toolbar [~]">✕</button>
+
+      <div class="dev-drawer-section">
+        <div class="dev-section-title">WARP TO SCENE</div>
+        <div class="dev-scenes-grid" id="dev-scenes-group"></div>
+      </div>
+
+      <div class="dev-drawer-section">
+        <div class="dev-section-title">SURVIVAL CHEATS</div>
+        <div class="dev-cheats-grid">
+          <button type="button" class="dev-btn" id="cheat-wood" title="Fill wood to max">+WOOD (5/5)</button>
+          <button type="button" class="dev-btn" id="cheat-food" title="Fill food to max">+FOOD (5/5)</button>
+          <button type="button" class="dev-btn" id="cheat-heal" title="Restore 100% health">HEAL 100%</button>
+          <button type="button" class="dev-btn" id="cheat-reset" title="Empty inventory">RESET INV</button>
+          <button type="button" class="dev-btn" id="cheat-wipe" title="Wipe LocalStorage & IndexedDB">WIPE DATA</button>
+          <button type="button" class="dev-btn" id="cheat-view" title="Toggle Camera View">VIEW CAM</button>
+        </div>
+      </div>
     `;
 
     document.body.appendChild(bar);
     this.devToolbarEl = bar;
 
-    // Connect cheat buttons
+    // Connect cheat buttons with mobile haptics
     bar.querySelector('#cheat-wood')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
       this.game.gameState.inventory.wood = this.game.gameState.inventory.maxWood;
       this.game.gameState.emit('inventoryChanged', this.game.gameState.inventory);
       this.showToast('Cheat: Wood set to max (5/5)');
@@ -101,6 +125,7 @@ export class SceneNavUI {
 
     bar.querySelector('#cheat-food')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
       this.game.gameState.inventory.food = this.game.gameState.inventory.maxFood;
       this.game.gameState.emit('inventoryChanged', this.game.gameState.inventory);
       this.showToast('Cheat: Food set to max (5/5)');
@@ -108,12 +133,14 @@ export class SceneNavUI {
 
     bar.querySelector('#cheat-heal')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
       this.game.gameState.heal(100);
       this.showToast('Cheat: Health restored to 100%');
     });
 
     bar.querySelector('#cheat-reset')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
       this.game.gameState.inventory.wood = 0;
       this.game.gameState.inventory.food = 0;
       this.game.gameState.emit('inventoryChanged', this.game.gameState.inventory);
@@ -122,6 +149,7 @@ export class SceneNavUI {
 
     bar.querySelector('#cheat-wipe')?.addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
       await this.game.gameState.wipeStorage();
       this.showToast('Storage wiped (IndexedDB & LocalStorage cleared)');
       if (this.lastSceneData) {
@@ -129,8 +157,17 @@ export class SceneNavUI {
       }
     });
 
+    bar.querySelector('#cheat-view')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(15);
+      if (this.game.input && typeof this.game.input.onToggleView === 'function') {
+        this.game.input.onToggleView();
+      }
+    });
+
     bar.querySelector('#dev-close-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (navigator.vibrate) navigator.vibrate(10);
       this.toggleDevPanel(false);
     });
   }
@@ -165,6 +202,7 @@ export class SceneNavUI {
       group.querySelectorAll('.dev-btn').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (navigator.vibrate) navigator.vibrate(15);
           const targetId = btn.getAttribute('data-dev-id');
           if (targetId && targetId !== currentSceneId) {
             this.game.sceneManager.goTo(targetId, true, true);
@@ -178,6 +216,9 @@ export class SceneNavUI {
     this.isDevOpen = forceState !== null ? forceState : !this.isDevOpen;
     if (this.devToolbarEl) {
       this.devToolbarEl.classList.toggle('open', this.isDevOpen);
+    }
+    if (this.devBackdropEl) {
+      this.devBackdropEl.classList.toggle('open', this.isDevOpen);
     }
     const devBtn = document.getElementById('panel-dev-btn');
     if (devBtn) {

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e2722" />
+      <stop offset="100%" stop-color="#121614" />
+    </linearGradient>
+    <linearGradient id="flameOuter" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#b94a1a" />
+      <stop offset="60%" stop-color="#d96b32" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="flameInner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="70%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#fef08a" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="8" ry="8" fill="url(#bgGrad)" stroke="#3a4a3e" stroke-width="2.5" />
+  <polygon points="13,44 19,30 25,44" fill="#253528" opacity="0.8" />
+  <polygon points="39,44 45,30 51,44" fill="#253528" opacity="0.8" />
+  <line x1="16" y1="49" x2="48" y2="43" stroke="#4a3a2d" stroke-width="5" stroke-linecap="round" />
+  <line x1="16" y1="43" x2="48" y2="49" stroke="#594635" stroke-width="5" stroke-linecap="round" />
+  <line x1="20" y1="51" x2="44" y2="51" stroke="#36291f" stroke-width="3.5" stroke-linecap="round" />
+  <path d="M32 14 C35 22, 45 27, 43 38 C42 45, 36 49, 32 49 C28 49, 22 45, 21 38 C19 28, 29 22, 32 14 Z" fill="url(#flameOuter)" />
+  <path d="M32 23 C34 29, 39 33, 38 41 C37 46, 34 48, 32 48 C30 48, 27 46, 26 41 C25 34, 30 29, 32 23 Z" fill="url(#flameInner)" />
+  <circle cx="36" cy="12" r="1.5" fill="#fde047" opacity="0.9" />
+  <circle cx="27" cy="16" r="1.2" fill="#fb923c" opacity="0.8" />
+  <circle cx="32" cy="8"  r="1.0" fill="#fef08a" opacity="0.75" />
+</svg>

@@ -42,11 +42,11 @@ export class TouchControls {
     const isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
     const hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
-    return Boolean((isCoarse && hasTouch) || (isMobileUA && hasTouch));
+    const hasTouchParam = typeof window.location !== 'undefined' && window.location.search.includes('touch=1');
+    return Boolean((isCoarse && hasTouch) || (isMobileUA && hasTouch) || hasTouchParam);
   }
 
   init() {
-    // Controls should strictly only instantiate and work on mobile versions
     if (!TouchControls.isMobileDevice()) {
       return;
     }
@@ -54,12 +54,14 @@ export class TouchControls {
     this.createDOM();
     this.bindEvents();
     this.setEnabled(true);
+    this.startStateObservers();
 
     window.addEventListener('resize', () => {
       const isMobile = TouchControls.isMobileDevice();
       if (!this.container && isMobile) {
         this.createDOM();
         this.bindEvents();
+        this.startStateObservers();
       }
       this.setEnabled(isMobile);
     });
@@ -71,45 +73,49 @@ export class TouchControls {
     this.container.className = 'touch-controls-container hidden';
 
     this.container.innerHTML = `
-      <!-- Touch Camera Look & Pinch-to-Zoom Zone -->
+      <!-- Segregated Camera Look & Pinch-to-Zoom Zone (Upper-Right) -->
       <div id="touch-look-zone" class="touch-look-zone">
         <div class="touch-look-hint">DRAG TO LOOK • PINCH TO ZOOM</div>
       </div>
 
-      <!-- Virtual Joystick Zone (Bottom Left) -->
-      <div id="touch-joystick-zone" class="touch-joystick-zone">
-        <div id="touch-joystick-base" class="touch-joystick-base">
-          <span class="joy-cardinal joy-n">▲</span>
-          <span class="joy-cardinal joy-s">▼</span>
-          <span class="joy-cardinal joy-w">◄</span>
-          <span class="joy-cardinal joy-e">►</span>
-          <div id="touch-joystick-thumb" class="touch-joystick-thumb"></div>
+      <!-- Dynamic Floating Virtual Joystick Area (Bottom-Left Quadrant) -->
+      <div id="touch-joystick-toucharea" class="touch-joystick-toucharea"></div>
+
+      <!-- Virtual Joystick Visual Base -->
+      <div id="touch-joystick-base" class="touch-joystick-base dynamic faint">
+        <span class="joy-cardinal joy-n" id="joy-n">▲</span>
+        <span class="joy-cardinal joy-s" id="joy-s">▼</span>
+        <span class="joy-cardinal joy-w" id="joy-w">◄</span>
+        <span class="joy-cardinal joy-e" id="joy-e">►</span>
+        <div id="touch-joystick-thumb" class="touch-joystick-thumb"></div>
+      </div>
+
+      <!-- Unambiguous Physical Tactile Action Cluster (Bottom Right) -->
+      <div id="touch-action-cluster" class="touch-tactile-cluster">
+        <div class="touch-row-top">
+          <!-- Sprint Toggle Button with explicit LED indicator -->
+          <button type="button" class="touch-btn touch-btn-sprint" id="touch-btn-sprint" aria-label="Toggle Sprint">
+            <span class="sprint-led" id="touch-sprint-led"></span>
+            <span class="btn-main-label" id="touch-sprint-label">SPRINT [OFF]</span>
+          </button>
         </div>
-        <div class="touch-label">MOVE</div>
+
+        <div class="touch-row-bottom">
+          <!-- Eat / Use Consumable Button -->
+          <button type="button" class="touch-btn touch-btn-eat" id="touch-btn-eat" aria-label="Eat / Use Item">
+            <span class="btn-main-label">EAT [Q]</span>
+            <span class="food-badge" id="touch-food-badge">(x0)</span>
+          </button>
+
+          <!-- Primary Interact Action Button -->
+          <button type="button" class="touch-btn touch-btn-interact" id="touch-btn-interact" aria-label="Interact">
+            <span class="btn-main-label">INTERACT</span>
+            <span class="btn-key-tag">[E]</span>
+          </button>
+        </div>
       </div>
 
-      <!-- PlayStation-Style Action Button Cluster (Bottom Right) -->
-      <div id="touch-action-cluster" class="touch-action-cluster">
-        <!-- Triangle / Sprint (Top) -->
-        <button type="button" class="ps-btn ps-triangle" id="ps-btn-sprint" aria-label="Sprint">
-          <span class="ps-glyph">△</span>
-          <span class="ps-tag">RUN</span>
-        </button>
-
-        <!-- Square / Eat & Use (Left) -->
-        <button type="button" class="ps-btn ps-square" id="ps-btn-use" aria-label="Use Item">
-          <span class="ps-glyph">▢</span>
-          <span class="ps-tag">USE</span>
-        </button>
-
-        <!-- Cross / Primary Interact (Bottom / Main) -->
-        <button type="button" class="ps-btn ps-cross" id="ps-btn-interact" aria-label="Interact">
-          <span class="ps-glyph">✕</span>
-          <span class="ps-tag">ACT</span>
-        </button>
-      </div>
-
-      <!-- Quick Toggle for Desktop / Mobile preference -->
+      <!-- Top Quick Badges -->
       <div class="touch-top-badges">
         <button type="button" id="touch-toggle-badge" class="touch-toggle-badge" title="Toggle On-Screen Touch Controls">
           TOUCH: ON
@@ -124,19 +130,27 @@ export class TouchControls {
 
     this.baseEl = document.getElementById('touch-joystick-base');
     this.thumbEl = document.getElementById('touch-joystick-thumb');
+    this.joyAreaEl = document.getElementById('touch-joystick-toucharea');
+    this.cardinals = {
+      n: document.getElementById('joy-n'),
+      s: document.getElementById('joy-s'),
+      w: document.getElementById('joy-w'),
+      e: document.getElementById('joy-e'),
+    };
   }
 
   bindEvents() {
-    const joyZone = document.getElementById('touch-joystick-zone');
+    const joyArea = this.joyAreaEl;
     const lookZone = document.getElementById('touch-look-zone');
-    const btnInteract = document.getElementById('ps-btn-interact');
-    const btnSprint = document.getElementById('ps-btn-sprint');
-    const btnUse = document.getElementById('ps-btn-use');
+    const btnInteract = document.getElementById('touch-btn-interact');
+    const btnSprint = document.getElementById('touch-btn-sprint');
+    const btnUse = document.getElementById('touch-btn-eat');
     const toggleBadge = document.getElementById('touch-toggle-badge');
+    const viewBadge = document.getElementById('touch-view-badge');
 
-    // 1. Joystick Touch Tracking
-    if (joyZone) {
-      joyZone.addEventListener(
+    // 1. Dynamic Floating Joystick Touch Tracking
+    if (joyArea && this.baseEl) {
+      joyArea.addEventListener(
         'touchstart',
         (e) => {
           e.preventDefault();
@@ -144,18 +158,22 @@ export class TouchControls {
           const touch = e.changedTouches[0];
           this.joystickTouchId = touch.identifier;
 
-          const rect = this.baseEl.getBoundingClientRect();
-          this.joystickBasePos = {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2,
-          };
+          // Dynamically center joystick base at touch origin
+          this.joystickBasePos = { x: touch.clientX, y: touch.clientY };
+          this.baseEl.style.left = `${touch.clientX - 60}px`;
+          this.baseEl.style.top = `${touch.clientY - 60}px`;
+          this.baseEl.style.bottom = 'auto';
+          this.baseEl.style.right = 'auto';
+          this.baseEl.classList.remove('faint');
+          this.baseEl.classList.add('engaged');
 
+          if (navigator.vibrate) navigator.vibrate(10);
           this.updateJoystick(touch.clientX, touch.clientY);
         },
         { passive: false }
       );
 
-      joyZone.addEventListener(
+      joyArea.addEventListener(
         'touchmove',
         (e) => {
           e.preventDefault();
@@ -181,8 +199,8 @@ export class TouchControls {
         }
       };
 
-      joyZone.addEventListener('touchend', resetJoy, { passive: false });
-      joyZone.addEventListener('touchcancel', resetJoy, { passive: false });
+      joyArea.addEventListener('touchend', resetJoy, { passive: false });
+      joyArea.addEventListener('touchcancel', resetJoy, { passive: false });
     }
 
     // 2. Camera Look & Pinch-to-Zoom Touch Tracking
@@ -205,15 +223,12 @@ export class TouchControls {
           const activeTouches = getTouchesOnLookZone(e);
 
           if (activeTouches.length >= 2) {
-            // Two or more fingers: start pinch-to-zoom gesture
             this.isPinching = true;
-            this.lookTouchId = null; // Suppress camera look jitter while zooming
-
+            this.lookTouchId = null;
             const t0 = activeTouches[0];
             const t1 = activeTouches[1];
             this.pinchLastDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
           } else if (activeTouches.length === 1 && !this.isPinching) {
-            // Single finger: camera look pan
             const touch = activeTouches[0];
             this.lookTouchId = touch.identifier;
             this.lookLastPos = { x: touch.clientX, y: touch.clientY };
@@ -229,32 +244,25 @@ export class TouchControls {
           const activeTouches = getTouchesOnLookZone(e);
 
           if (activeTouches.length >= 2) {
-            // Active pinch-to-zoom
             this.isPinching = true;
             this.lookTouchId = null;
-
             const t0 = activeTouches[0];
             const t1 = activeTouches[1];
             const currentDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
 
             if (this.pinchLastDist > 0) {
               const deltaDist = currentDist - this.pinchLastDist;
-              // Fingers spreading apart (deltaDist > 0) -> Zoom in (decrease camera distance)
-              // Fingers pinching together (deltaDist < 0) -> Zoom out (increase camera distance)
               const zoomScale = 0.04;
               this.input.zoomDelta -= deltaDist * zoomScale;
             }
-
             this.pinchLastDist = currentDist;
           } else if (activeTouches.length === 1 && !this.isPinching) {
-            // Single finger camera look
             const touch = activeTouches[0];
             if (touch.identifier === this.lookTouchId) {
               const dx = (touch.clientX - this.lookLastPos.x) * this.lookSens;
               const dy = (touch.clientY - this.lookLastPos.y) * this.lookSens;
               this.lookLastPos = { x: touch.clientX, y: touch.clientY };
 
-              // Feed camera delta into Input manager
               this.input.mouseDeltaX += dx;
               this.input.mouseDeltaY += dy;
             }
@@ -265,21 +273,17 @@ export class TouchControls {
 
       const resetLookOrPinch = (e) => {
         const activeTouches = getTouchesOnLookZone(e);
-
         if (activeTouches.length >= 2) {
-          // Still pinching with at least 2 fingers
           const t0 = activeTouches[0];
           const t1 = activeTouches[1];
           this.pinchLastDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
         } else if (activeTouches.length === 1) {
-          // 1 finger left after pinch -> smoothly transition to single finger look
           this.isPinching = false;
           this.pinchLastDist = 0;
           const touch = activeTouches[0];
           this.lookTouchId = touch.identifier;
           this.lookLastPos = { x: touch.clientX, y: touch.clientY };
         } else {
-          // All fingers released
           this.isPinching = false;
           this.pinchLastDist = 0;
           this.lookTouchId = null;
@@ -290,8 +294,7 @@ export class TouchControls {
       lookZone.addEventListener('touchcancel', resetLookOrPinch, { passive: false });
     }
 
-    // 3. PS-Style Action Buttons
-    // Cross (✕) -> Interact [E]
+    // 3. Primary Action Button: INTERACT [E]
     if (btnInteract) {
       const triggerInteract = (e) => {
         e.preventDefault();
@@ -310,7 +313,7 @@ export class TouchControls {
       btnInteract.addEventListener('mouseup', releaseInteract);
     }
 
-    // Triangle (△) -> Sprint [Shift]
+    // 4. Movement Modifier: SPRINT Toggle
     if (btnSprint) {
       const toggleSprint = (e) => {
         e.preventDefault();
@@ -318,6 +321,11 @@ export class TouchControls {
         this.sprintToggled = !this.sprintToggled;
         this.input.keys.sprint = this.sprintToggled;
         btnSprint.classList.toggle('active', this.sprintToggled);
+
+        const label = document.getElementById('touch-sprint-label');
+        if (label) {
+          label.textContent = this.sprintToggled ? 'SPRINT [ON]' : 'SPRINT [OFF]';
+        }
         if (navigator.vibrate) navigator.vibrate(20);
       };
 
@@ -325,7 +333,7 @@ export class TouchControls {
       btnSprint.addEventListener('click', toggleSprint);
     }
 
-    // Square (▢) -> Use / Eat [Q]
+    // 5. Consumable: EAT / USE [Q]
     if (btnUse) {
       const triggerUse = (e) => {
         e.preventDefault();
@@ -344,7 +352,7 @@ export class TouchControls {
       btnUse.addEventListener('mouseup', releaseUse);
     }
 
-    // Toggle button for testing or hiding
+    // 6. Quick Control Toggles
     if (toggleBadge) {
       toggleBadge.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -352,7 +360,6 @@ export class TouchControls {
       });
     }
 
-    const viewBadge = document.getElementById('touch-view-badge');
     if (viewBadge) {
       viewBadge.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -362,6 +369,33 @@ export class TouchControls {
         }
       });
     }
+  }
+
+  startStateObservers() {
+    if (this.updateInterval) clearInterval(this.updateInterval);
+
+    this.updateInterval = setInterval(() => {
+      // 1. Check interaction prompt proximity to pulse the interact button
+      const promptEl = document.getElementById('interaction-prompt');
+      const btnInteract = document.getElementById('touch-btn-interact');
+      if (btnInteract) {
+        const isNear = promptEl && !promptEl.classList.contains('hidden');
+        btnInteract.classList.toggle('pulse-ready', Boolean(isNear));
+      }
+
+      // 2. Sync food count on Eat button
+      const foodCountEl = document.getElementById('touch-food-badge');
+      const btnEat = document.getElementById('touch-btn-eat');
+      const hudFoodEl = document.getElementById('ui-inventory-food');
+      if (foodCountEl && hudFoodEl) {
+        const countText = hudFoodEl.textContent.trim() || '0';
+        foodCountEl.textContent = `(${countText})`;
+        const count = parseInt(countText, 10);
+        if (btnEat) {
+          btnEat.classList.toggle('disabled', count === 0);
+        }
+      }
+    }, 200);
   }
 
   updateJoystick(clientX, clientY) {
@@ -378,22 +412,46 @@ export class TouchControls {
       this.thumbEl.style.transform = `translate(${dx}px, ${dy}px)`;
     }
 
-    // Deadzone threshold of 12px
     const deadzone = 12;
-    this.input.keys.forward = dy < -deadzone;
-    this.input.keys.backward = dy > deadzone;
-    this.input.keys.left = dx < -deadzone;
-    this.input.keys.right = dx > deadzone;
+    const isN = dy < -deadzone;
+    const isS = dy > deadzone;
+    const isW = dx < -deadzone;
+    const isE = dx > deadzone;
+
+    this.input.keys.forward = isN;
+    this.input.keys.backward = isS;
+    this.input.keys.left = isW;
+    this.input.keys.right = isE;
+
+    // Highlight directional cardinal arrows
+    if (this.cardinals.n) this.cardinals.n.classList.toggle('active', isN);
+    if (this.cardinals.s) this.cardinals.s.classList.toggle('active', isS);
+    if (this.cardinals.w) this.cardinals.w.classList.toggle('active', isW);
+    if (this.cardinals.e) this.cardinals.e.classList.toggle('active', isE);
   }
 
   resetJoystick() {
     if (this.thumbEl) {
       this.thumbEl.style.transform = 'translate(0px, 0px)';
     }
+    if (this.baseEl) {
+      this.baseEl.classList.remove('engaged');
+      this.baseEl.classList.add('faint');
+      this.baseEl.style.left = '32px';
+      this.baseEl.style.bottom = '32px';
+      this.baseEl.style.top = 'auto';
+      this.baseEl.style.right = 'auto';
+    }
+
     this.input.keys.forward = false;
     this.input.keys.backward = false;
     this.input.keys.left = false;
     this.input.keys.right = false;
+
+    if (this.cardinals.n) this.cardinals.n.classList.remove('active');
+    if (this.cardinals.s) this.cardinals.s.classList.remove('active');
+    if (this.cardinals.w) this.cardinals.w.classList.remove('active');
+    if (this.cardinals.e) this.cardinals.e.classList.remove('active');
   }
 
   setEnabled(enabled) {

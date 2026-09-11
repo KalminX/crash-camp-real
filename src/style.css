@@ -1112,3 +1112,438 @@ canvas {
   color: var(--color-ash);
   letter-spacing: 0.5px;
 }
+
+
+/* ==========================================================================
+   SCENE TRANSITION OVERLAY (Dark Subtle Black Flash)
+   ========================================================================== */
+
+.scene-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0a0d0c;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scene-transition-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   INTRO STORY RUN-THROUGH & SCENE WAKE-UP
+   ========================================================================== */
+
+.intro-story-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  width: min(580px, 90vw);
+  background: rgba(14, 18, 16, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-xs);
+  padding: 24px 28px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  pointer-events: auto;
+  user-select: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.intro-story-card.fade-out {
+  opacity: 0;
+  transform: translate(-50%, -46%);
+  pointer-events: none;
+}
+
+.story-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #f59e0b;
+  margin-bottom: 8px;
+}
+
+.story-line.main {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--color-warm-white);
+  margin-bottom: 6px;
+}
+
+.story-line.sub {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-ash);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.story-line.warning {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #e57373;
+  letter-spacing: 0.8px;
+  padding: 6px 10px;
+  background: rgba(185, 28, 28, 0.15);
+  border-left: 3px solid #ef4444;
+  margin-bottom: 14px;
+}
+
+.story-skip-hint {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: rgba(184, 180, 168, 0.5);
+  text-align: right;
+}
+
+.scene-wakeup-tag {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--color-warm-white);
+  background: rgba(18, 22, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 6px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+.scene-wakeup-tag.fade-out {
+  opacity: 0;
+}
+
+/* ==========================================================================
+   UNAMBIGUOUS TACTILE MOBILE CONTROLS
+   ========================================================================== */
+
+/* Dynamic Floating Joystick Zone */
+.touch-joystick-toucharea {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48vw;
+  height: 48vh;
+  pointer-events: auto;
+  z-index: 34;
+  touch-action: none;
+}
+
+.touch-joystick-base.dynamic {
+  transition: opacity 0.15s ease;
+}
+
+.touch-joystick-base.faint {
+  opacity: 0.45;
+}
+
+.touch-joystick-base.engaged {
+  opacity: 0.95;
+  border-color: rgba(231, 225, 211, 0.45);
+}
+
+.joy-cardinal.active {
+  color: #f59e0b;
+  font-weight: 900;
+  text-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+/* Tactile Physical Action Cluster */
+.touch-tactile-cluster {
+  position: absolute;
+  bottom: 24px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: auto;
+  z-index: 36;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-row-top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.touch-row-bottom {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.touch-btn {
+  background: rgba(20, 24, 22, 0.88);
+  border: 1.5px solid rgba(184, 180, 168, 0.3);
+  border-radius: var(--radius-xs);
+  color: var(--color-warm-white);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.08s ease, background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.08s ease;
+  touch-action: manipulation;
+}
+
+.touch-btn:active, .touch-btn.active {
+  transform: scale(0.94);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Primary Action Button: INTERACT [E] */
+.touch-btn-interact {
+  width: 72px;
+  height: 64px;
+  background: rgba(26, 32, 28, 0.94);
+  border-color: rgba(231, 225, 211, 0.45);
+}
+
+.touch-btn-interact .btn-main-label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--color-warm-white);
+}
+
+.touch-btn-interact .btn-key-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-top: 2px;
+}
+
+.touch-btn-interact.pulse-ready {
+  border-color: #f59e0b;
+  background: rgba(54, 42, 24, 0.94);
+  animation: interactPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes interactPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+/* Sprint Toggle Button */
+.touch-btn-sprint {
+  height: 38px;
+  padding: 0 14px;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.touch-btn-sprint .sprint-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748b;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.touch-btn-sprint.active {
+  background: rgba(82, 99, 74, 0.85);
+  border-color: rgba(231, 225, 211, 0.7);
+}
+
+.touch-btn-sprint.active .sprint-led {
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+}
+
+.touch-btn-sprint .btn-main-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+/* Consume / Eat Button */
+.touch-btn-eat {
+  width: 58px;
+  height: 52px;
+}
+
+.touch-btn-eat .btn-main-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.touch-btn-eat .food-badge {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #86efac;
+  margin-top: 2px;
+}
+
+.touch-btn-eat.disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.touch-btn-eat.disabled .food-badge {
+  color: var(--color-ash);
+}
+
+/* Segregated Look & Pinch Zone (Upper-Right) */
+.touch-look-zone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 55vw;
+  height: 70vh;
+  pointer-events: auto;
+  z-index: 31;
+  touch-action: none;
+}
+
+/* ==========================================================================
+   COMFY MOBILE DEV PANEL (Drawer Mode on <= 768px)
+   ========================================================================== */
+
+.dev-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 94;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.dev-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  #dev-toolbar {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    background: rgba(16, 20, 18, 0.98) !important;
+    border: none !important;
+    border-top: 1.5px solid rgba(255, 255, 255, 0.18) !important;
+    border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+    padding: 16px 18px 28px 18px !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.85) !important;
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex !important;
+    visibility: hidden;
+  }
+
+  #dev-toolbar.open {
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  .dev-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dev-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dev-drawer-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--color-warm-white);
+  }
+
+  .dev-section-title {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--color-ash);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .dev-scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .dev-cheats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .dev-btn {
+    min-height: 42px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    padding: 8px 10px !important;
+    border-radius: var(--radius-xs) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    touch-action: manipulation;
+  }
+
+  .dev-close-btn {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .dev-sep {
+    display: none !important;
+  }
+}
