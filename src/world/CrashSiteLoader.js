@@ -47,12 +47,15 @@ export class CrashSiteLoader {
           let tail = null;
 
           // Configure materials, shadows, and detect key parts
+          rawModel.matrixAutoUpdate = false;
           rawModel.traverse((child) => {
             if (child.isMesh) {
-              child.castShadow = true;
+              const isGround = child.name.includes('Terrain') || child.name === 'Terrain_CrashSite';
+              child.castShadow = !isGround; // Terrain ground never casts shadows
               child.receiveShadow = true;
+              child.matrixAutoUpdate = false;
 
-              if (child.name.includes('Terrain') || child.name === 'Terrain_CrashSite') {
+              if (isGround) {
                 terrainMesh = child;
               }
             }

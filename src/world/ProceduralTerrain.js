@@ -327,12 +327,14 @@ export class ProceduralTerrain {
       vertexColors: true,
       roughness: 0.92,
       metalness: 0.04,
-      flatShading: true,
+      flatShading: false,
     });
 
     const terrainMesh = new THREE.Mesh(geo, terrainMat);
     terrainMesh.name = `terrainMesh_${this.theme}`;
     terrainMesh.receiveShadow = true;
+    terrainMesh.matrixAutoUpdate = false;
+    terrainMesh.updateMatrix();
     group.add(terrainMesh);
 
     // 2. Procedural Prop Scatter (Pine Trees, Boulders, Logs)
@@ -433,6 +435,9 @@ export class ProceduralTerrain {
         firewoodEntities.push({ entityId: logEntity, mesh: logMesh, position: pos });
       });
     }
+
+    group.matrixAutoUpdate = false;
+    group.updateMatrix();
 
     return {
       group,

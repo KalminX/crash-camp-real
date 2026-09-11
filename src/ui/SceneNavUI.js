@@ -102,6 +102,16 @@ export class SceneNavUI {
       </div>
 
       <div class="dev-drawer-section">
+        <div class="dev-section-title">GRAPHICS & PERFORMANCE</div>
+        <div class="dev-cheats-grid">
+          <button type="button" class="dev-btn" id="perf-preset-auto" title="Dynamic Resolution Scaling (DRS) to lock 60 FPS">AUTO DRS (60 FPS)</button>
+          <button type="button" class="dev-btn" id="perf-preset-balanced" title="Balanced 1.25x DPR for optimal visual clarity and speed">BALANCED (1.25x)</button>
+          <button type="button" class="dev-btn" id="perf-preset-perf" title="1.0x native DPR for maximum framerate">PERFORMANCE (1.0x)</button>
+          <button type="button" class="dev-btn" id="perf-preset-high" title="High quality 1.75x DPR">HIGH (1.75x)</button>
+        </div>
+      </div>
+
+      <div class="dev-drawer-section">
         <div class="dev-section-title">SURVIVAL CHEATS & WORLD SEED</div>
         <div class="dev-cheats-grid">
           <button type="button" class="dev-btn" id="cheat-wood" title="Fill wood to max">+WOOD (5/5)</button>
@@ -184,6 +194,39 @@ export class SceneNavUI {
         this.game.input.onToggleView();
       }
     });
+
+    // Performance & Graphics Presets
+    const perfPresets = [
+      { id: '#perf-preset-auto', preset: 'auto' },
+      { id: '#perf-preset-balanced', preset: 'balanced' },
+      { id: '#perf-preset-perf', preset: 'performance' },
+      { id: '#perf-preset-high', preset: 'high' },
+    ];
+
+    const updatePerfButtons = () => {
+      const active = this.game.qualityPreset || 'auto';
+      perfPresets.forEach(({ id, preset }) => {
+        const btn = bar.querySelector(id);
+        if (btn) {
+          const isActive = active === preset;
+          btn.style.borderColor = isActive ? 'rgba(74, 222, 128, 0.5)' : '';
+          btn.style.color = isActive ? '#86efac' : '';
+          btn.style.background = isActive ? 'rgba(22, 101, 52, 0.3)' : '';
+        }
+      });
+    };
+
+    perfPresets.forEach(({ id, preset }) => {
+      bar.querySelector(id)?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (navigator.vibrate) navigator.vibrate(15);
+        this.game.setQualityPreset(preset);
+        updatePerfButtons();
+      });
+    });
+
+    updatePerfButtons();
+    this.updatePerfButtons = updatePerfButtons;
 
     bar.querySelector('#dev-close-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -480,11 +523,14 @@ export class SceneNavUI {
     const fps = this.game.time.fps;
     const ms = this.game.time.frameTimeMs;
 
-    if (fps === this._lastRenderedFps && ms === this._lastRenderedMs) {
+    const dpr = typeof this.game.getCurrentDpr === 'function' ? this.game.getCurrentDpr().toFixed(2) : '1.0';
+
+    if (fps === this._lastRenderedFps && ms === this._lastRenderedMs && dpr === this._lastRenderedDpr) {
       return;
     }
     this._lastRenderedFps = fps;
     this._lastRenderedMs = ms;
+    this._lastRenderedDpr = dpr;
 
     let statusClass = 'dev-fps-good';
     if (fps < 30) {
@@ -496,7 +542,7 @@ export class SceneNavUI {
     // 1. Permanent HUD Badge
     const hudBadge = document.getElementById('hud-fps-badge');
     if (hudBadge) {
-      hudBadge.textContent = `${fps} FPS`;
+      hudBadge.textContent = `${fps} FPS • ${dpr}x`;
       hudBadge.className = `hud-fps-badge ${statusClass}`;
     }
 
@@ -504,7 +550,7 @@ export class SceneNavUI {
     if (this.devToolbarEl) {
       const devFps = this.devToolbarEl.querySelector('#dev-fps-display');
       if (devFps) {
-        devFps.textContent = `${fps} FPS • ${ms}ms`;
+        devFps.textContent = `${fps} FPS • ${ms}ms • ${dpr}x DPR`;
         devFps.className = `dev-fps ${statusClass}`;
       }
     }

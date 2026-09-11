@@ -16,14 +16,21 @@ export class Game {
   constructor(containerId = 'game-container') {
     this.container = document.getElementById(containerId) || document.body;
 
-    // 1. Central WebGL Renderer (High-precision shaders & dynamic Retina pixel ratio for crisp mobile display)
+    // 1. Quality Presets & Dynamic Resolution Scaling (DRS)
+    this.qualityPreset = typeof localStorage !== 'undefined'
+      ? localStorage.getItem('crashcamp_quality_preset') || 'auto'
+      : 'auto';
+    this._currentDpr = this.calculateTargetDpr();
+    this._drsCheckTimer = 0;
+
+    // Central WebGL Renderer (Optimized high-performance pipeline)
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: (window.devicePixelRatio || 1) < 1.3, // Redundant MSAA overhead disabled on Retina
       powerPreference: 'high-performance',
       precision: 'highp',
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+    this.renderer.setPixelRatio(this._currentDpr);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -53,11 +60,54 @@ export class Game {
     this.setupListeners();
   }
 
+  calculateTargetDpr() {
+    const maxNativeDpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    if (this.qualityPreset === 'high') {
+      return Math.min(maxNativeDpr, 1.75);
+    }
+    if (this.qualityPreset === 'balanced') {
+      return Math.min(maxNativeDpr, 1.25);
+    }
+    if (this.qualityPreset === 'performance') {
+      return 1.0;
+    }
+    // 'auto': balanced target that adapts under load
+    return Math.min(maxNativeDpr, 1.35);
+  }
+
+  setQualityPreset(preset) {
+    this.qualityPreset = preset;
+    try {
+      localStorage.setItem('crashcamp_quality_preset', preset);
+    } catch (_) {}
+
+    this._currentDpr = this.calculateTargetDpr();
+    this.renderer.setPixelRatio(this._currentDpr);
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.renderer.setSize(width, height);
+
+    const scene = this.sceneManager.getCurrentScene();
+    if (scene && typeof scene.onResize === 'function') {
+      scene.onResize(width, height);
+    }
+
+    if (this.ui) {
+      this.ui.showToast(`Graphics Preset: ${preset.toUpperCase()} (${this._currentDpr.toFixed(2)}x DPR)`);
+    }
+  }
+
+  getCurrentDpr() {
+    return this._currentDpr || 1.0;
+  }
+
   setupListeners() {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+      this._currentDpr = this.calculateTargetDpr();
+      this.renderer.setPixelRatio(this._currentDpr);
       this.renderer.setSize(width, height);
 
       const scene = this.sceneManager.getCurrentScene();
@@ -144,9 +194,33 @@ export class Game {
   }
 
   update(dt) {
+    this.updateDrs(dt);
     this.sceneManager.update(dt);
     if (this.ui && typeof this.ui.update === 'function') {
       this.ui.update(dt);
+    }
+  }
+
+  updateDrs(dt) {
+    if (this.qualityPreset !== 'auto') return;
+
+    this._drsCheckTimer = (this._drsCheckTimer || 0) + dt;
+    if (this._drsCheckTimer < 0.6) return;
+    this._drsCheckTimer = 0;
+
+    const fps = this.time ? this.time.fps : 60;
+    const maxNativeDpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    const maxDpr = Math.min(maxNativeDpr, 1.35);
+    const minDpr = 1.0;
+
+    if (fps < 50 && this._currentDpr > minDpr) {
+      // Step down pixel ratio when framerate dips below target
+      this._currentDpr = Math.max(minDpr, parseFloat((this._currentDpr - 0.10).toFixed(2)));
+      this.renderer.setPixelRatio(this._currentDpr);
+    } else if (fps >= 58 && this._currentDpr < maxDpr) {
+      // Step up pixel ratio smoothly when GPU headroom exists
+      this._currentDpr = Math.min(maxDpr, parseFloat((this._currentDpr + 0.05).toFixed(2)));
+      this.renderer.setPixelRatio(this._currentDpr);
     }
   }
 

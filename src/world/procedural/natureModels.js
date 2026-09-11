@@ -127,19 +127,22 @@ export function createInstancedPineForest(instances = []) {
   const group = new THREE.Group();
   group.name = 'instancedPineForest';
 
-  // 1. Shared Trunk InstancedMesh (1 draw call for all trunks)
+  // 1. Shared Trunk InstancedMesh (1 draw call for all trunks; casts ground shadows)
   const trunkGeo = new THREE.CylinderGeometry(0.2, 0.28, 2.4, 6);
   trunkGeo.translate(0, 1.2, 0); // Base at y=0
   const trunkInst = new THREE.InstancedMesh(trunkGeo, barkMaterial, count);
   trunkInst.castShadow = true;
-  trunkInst.receiveShadow = true;
+  trunkInst.receiveShadow = false;
+  trunkInst.matrixAutoUpdate = false;
 
   // 2. Shared Foliage Cones InstancedMesh (3 cones per tree, 1 draw call for all foliage)
+  // Disabled shadow casting/receiving on 1,500+ foliage cones for massive 60 FPS GPU gain
   const coneGeo = new THREE.ConeGeometry(1.6, 2.0, 7);
   coneGeo.translate(0, 1.0, 0); // Base at y=0
   const foliageInst = new THREE.InstancedMesh(coneGeo, needleMaterialDark, count * 3);
-  foliageInst.castShadow = true;
-  foliageInst.receiveShadow = true;
+  foliageInst.castShadow = false;
+  foliageInst.receiveShadow = false;
+  foliageInst.matrixAutoUpdate = false;
 
   const dummy = new THREE.Object3D();
   for (let i = 0; i < count; i++) {
@@ -172,6 +175,7 @@ export function createInstancedPineForest(instances = []) {
 
   trunkInst.instanceMatrix.needsUpdate = true;
   foliageInst.instanceMatrix.needsUpdate = true;
+  group.matrixAutoUpdate = false;
   group.add(trunkInst);
   group.add(foliageInst);
 
@@ -208,7 +212,8 @@ export function createInstancedRockField(instances = []) {
 
   const rockInst = new THREE.InstancedMesh(rockGeo, rockMat, count);
   rockInst.castShadow = true;
-  rockInst.receiveShadow = true;
+  rockInst.receiveShadow = false;
+  rockInst.matrixAutoUpdate = false;
 
   const dummy = new THREE.Object3D();
   for (let i = 0; i < count; i++) {
@@ -225,6 +230,7 @@ export function createInstancedRockField(instances = []) {
   }
 
   rockInst.instanceMatrix.needsUpdate = true;
+  group.matrixAutoUpdate = false;
   group.add(rockInst);
 
   return group;

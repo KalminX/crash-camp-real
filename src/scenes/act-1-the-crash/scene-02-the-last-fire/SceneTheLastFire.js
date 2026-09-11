@@ -171,12 +171,9 @@ export class SceneTheLastFire extends BaseScene {
     this.highlightRing.position.y = 0.05;
     this.threeScene.add(this.highlightRing);
 
-    // Dedicated character visibility fill lights
-    const characterFrontLight = new THREE.PointLight(0xfff7ea, 1.4, 8.5, 1.2);
-    characterFrontLight.position.set(0, 1.8, 0.7);
-
-    const characterBackLight = new THREE.PointLight(0xdbe7f5, 1.0, 7.0, 1.4);
-    characterBackLight.position.set(0, 1.6, -0.7);
+    // Dedicated character rim fill light (single optimized point light for 60 FPS performance)
+    const characterRimLight = new THREE.PointLight(0xfff7ea, 1.2, 6.0, 1.6);
+    characterRimLight.position.set(0, 1.7, 0.4);
 
     // Preload animated GLB character model
     const characterLoader = new CharacterLoader();
@@ -220,14 +217,9 @@ export class SceneTheLastFire extends BaseScene {
       this.characterMesh = ProceduralModels.createHumanoidCharacter();
     }
 
-    this.characterMesh.add(characterFrontLight);
-    this.characterMesh.add(characterBackLight);
+    this.characterMesh.add(characterRimLight);
     this.threeScene.add(this.characterMesh);
     this.ecsWorld.addComponent(player, 'MeshComponent', Components.MeshComponent(this.characterMesh));
-
-    // Player chest light
-    const playerChestLight = new THREE.PointLight(0xeef2f7, 0.8, 14, 1.4);
-    this.camera.add(playerChestLight);
     this.threeScene.add(this.camera);
 
     // 8. Systems (Full 220m playable roaming boundary; zero-lag slope adherence)
