@@ -204,17 +204,23 @@ export class SceneManager {
         throw new Error(`Failed to resolve SceneClass from loader for "${resolvedId}"`);
       }
 
-      // 3. Instantiate and enter new scene
+      // 3. Instantiate and initialize new scene under solid blackout
       this.currentSceneId = resolvedId;
       const nextScene = new SceneClass(this.game);
+
+      await nextScene.enter();
+
+      // Execute initial update(0) pass under blackout so camera, systems,
+      // and transforms are fully settled at their exact starting positions
+      // BEFORE any pixel is revealed to the user!
+      nextScene.update(0);
+
       this.currentScene = nextScene;
 
       // Update persistent GameState
       if (this.game.gameState) {
         this.game.gameState.markSceneVisited(resolvedId);
       }
-
-      await nextScene.enter();
 
       // 4. Reveal new scene smoothly from dark blend flash
       if (previousSceneId) {

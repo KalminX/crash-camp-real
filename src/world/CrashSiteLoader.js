@@ -20,6 +20,11 @@ export class CrashSiteLoader {
     this.loader = new GLTFLoader();
   }
 
+  static preload(url = '/models/crash_site.glb') {
+    const loader = new CrashSiteLoader();
+    return loader.load(url);
+  }
+
   load(url = '/models/crash_site.glb') {
     if (CrashSiteLoader._cachedData) {
       return Promise.resolve(this.cloneCached(CrashSiteLoader._cachedData));

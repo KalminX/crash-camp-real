@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BaseScene } from '../../BaseScene.js';
 import { ProceduralModels } from '../../../world/ProceduralModels.js';
 import { AirplaneLoader } from '../../../world/AirplaneLoader.js';
+import { CrashSiteLoader } from '../../../world/CrashSiteLoader.js';
 import { ProceduralTerrain } from '../../../world/ProceduralTerrain.js';
 import { WorldSeed } from '../../../world/WorldSeed.js';
 import { ParticleFactory, InstancedParticleEmitter } from '../../../world/ParticleSystem.js';
@@ -104,9 +105,10 @@ export class SceneIntroFlight extends BaseScene {
     this.pristineTerrainGroup.position.set(0, -31.5, -16.0);
     this.threeScene.add(this.pristineTerrainGroup);
 
-    // 5. Setup Camera initial framing (drifting in the storm)
-    this.camera.position.set(-16, 4.0, -18);
-    this.camera.lookAt(0, 0, 0);
+    // 6. Preload Authentic Crash Site Model in background so Scene 1 is instantaneous
+    CrashSiteLoader.preload('/models/crash_site.glb').catch((err) => {
+      console.warn('[SceneIntroFlight] Preload crash_site.glb warning:', err);
+    });
 
     // 7. Load Real Airplane GLB Model
     try {
@@ -316,7 +318,7 @@ export class SceneIntroFlight extends BaseScene {
       }
 
       // Catastrophic plunge trajectory straight toward the crash site at (0, -31.5, -16)
-      if (this.hasFailed) {
+      if (this.hasFailed && !this.isTransitioning) {
         const failProgress = Math.min(1.0, (flightTime - 3.8) / 3.8);
 
         // Aircraft pitches steeply nose-down and banks hard left
@@ -345,14 +347,15 @@ export class SceneIntroFlight extends BaseScene {
           }
         }
 
-        // Ground impact into crash site trench at y <= -29.5m
-        if (this.airplane.position.y <= -29.5 && !this.hasHitGround) {
+        // Ground impact into crash site snow clearing at y <= -28.5m (instant cut to black)
+        if (this.airplane.position.y <= -28.5 && !this.hasHitGround) {
           this.hasHitGround = true;
           if (this.game && this.game.ui) {
             this.game.ui.showToast('CRASH SITE IMPACT &bull; TELEMETRY LOST');
           }
+          this.finishIntro();
         }
-      } else {
+      } else if (!this.hasFailed) {
         this.airplane.rotation.set(turbulencePitch, turbulenceYaw, turbulenceRoll);
       }
 
@@ -403,8 +406,8 @@ export class SceneIntroFlight extends BaseScene {
         this.camera.lookAt(0, 0, 0);
       }
 
-      // Transition precisely as the airplane impacts the crash site floor (y <= -30.8m or flightTime > 7.9s)
-      if ((this.airplane.position.y <= -30.8 || flightTime > 7.9) && !this.isTransitioning) {
+      // Transition precisely as the airplane impacts the crash site floor (y <= -28.5m or flightTime > 7.6s)
+      if ((this.airplane.position.y <= -28.5 || flightTime > 7.6) && !this.isTransitioning) {
         this.finishIntro();
       }
     } else {

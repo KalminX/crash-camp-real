@@ -92,6 +92,10 @@ export class SceneTheCrash extends BaseScene {
     fillLight.position.set(22, 26, -20);
     this.threeScene.add(fillLight);
 
+    // Pre-frame camera immediately so no frame ever renders at (0, 0, 0)
+    this.camera.position.set(0, 24, 16);
+    this.camera.lookAt(0, 0, 6);
+
     // 3. Mount Authentic Crash Site GLB Model (100% original colors and materials retained)
     const crashLoader = new CrashSiteLoader();
     try {
@@ -112,10 +116,7 @@ export class SceneTheCrash extends BaseScene {
         }
       }
     } catch (err) {
-      console.warn('[SceneTheCrash] Fallback to procedural plane wreckage:', err);
-      const fallbackWreck = ProceduralModels.createPlaneWreckage();
-      this.crashSiteModel = fallbackWreck;
-      this.threeScene.add(this.crashSiteModel);
+      console.warn('[SceneTheCrash] Error loading authentic crash site model:', err);
     }
 
     // 4. Mount 220m x 220m Deterministic Procedural Terrain with Seamless Edge Blending & Biomes

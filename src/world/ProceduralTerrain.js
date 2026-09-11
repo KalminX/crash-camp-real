@@ -264,7 +264,7 @@ export class ProceduralTerrain {
       posAttr.setY(i, y);
 
       // Color computation based on theme and altitude/biome
-      if (this.theme === 'the-crash' || this.theme === 'pristine-crash-valley') {
+      if (this.theme === 'the-crash') {
         const d = Math.max(Math.abs(x), Math.abs(z));
         if (d < 27.5) {
           const blend = Math.min(1.0, d / 27.5);
@@ -278,6 +278,19 @@ export class ProceduralTerrain {
         } else {
           const soilBlend = Math.min(1.0, Math.abs(this.noise3(x * 0.05, z * 0.05)));
           tempCol.copy(colCrashGrass).lerp(colCrashSoil, soilBlend * 0.4);
+        }
+      } else if (this.theme === 'pristine-crash-valley') {
+        const d = Math.max(Math.abs(x), Math.abs(z));
+        if (d < 22.0) {
+          // Untouched alpine snow clearing before the crash occurred
+          const snowRipple = Math.sin(x * 0.15) * Math.cos(z * 0.15) * 0.03;
+          tempCol.copy(colCrashSnow).offsetHSL(0, 0, snowRipple);
+        } else if (y > 4.0) {
+          const snowBlend = Math.min(1.0, (y - 4.0) / 4.0);
+          tempCol.copy(colCrashRock).lerp(colCrashSnow, snowBlend);
+        } else {
+          const rockBlend = Math.min(1.0, (d - 22.0) / 12.0);
+          tempCol.copy(colCrashSnow).lerp(colCrashRock, rockBlend * 0.4);
         }
       } else if (this.theme === 'the-last-fire') {
         const dist = Math.hypot(x, z);
